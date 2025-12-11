@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="uk-UA">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block title %}Книга Рецептів{% endblock %}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+        @media all and (min-width: 992px) {
+            /* Ховаємо всі дочірні підменю */
+            .dropdown-menu .dropdown-submenu .dropdown-menu {
+                display: none;
+            }
+
+            /* Позиціонування дочірнього меню ПРАВОРУЧ */
+            .dropdown-menu .dropdown-submenu .dropdown-menu.show {
+                display: block;
+                left: 100%;
+                top: 0;
+                margin-top: -1px;
+                margin-left: -1px;
+            }
+            .dropdown-menu .dropdown-submenu {
+                position: relative;
+            }
+        }
+    </style>
+
+    {% block head_extras %}{% endblock %}
+</head>
+
+<body id="homePage">
+    <div id="recepyApp">
+        <nav id="mainNav" class="navbar navbar-expand-lg bg-body-tertiary shadow-sm">
+            <div class="container-fluid">
+                <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">Рецепти</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Категорії
+                            </a>
+                            <ul class="dropdown-menu">
+                                {% for category in main_categories %}
+
+                                    {% if category.children %}
+
+                                    <li class="dropdown-submenu">
+                                        <a class="dropdown-item dropdown-toggle" href="{{ url_for('index', category_id=category.id) }}">
+                                            {{ category.title }}
+                                        </a>
+
+                                        <ul class="dropdown-menu">
+                                            {% for child in category.children %}
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ url_for('index', category_id=child.id) }}">
+                                                        {{ child.title }}
+                                                    </a>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </li>
+
+                                    {% else %}
+
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('index', category_id=category.id) }}">
+                                            {{ category.title }}
+                                        </a>
+                                    </li>
+
+                                    {% endif %}
+                                {% endfor %}
+                            </ul>
+                        </li>
+
+                        <li class="nav-item">
+                             <a class="nav-link" href="{{ url_for('add_recipe') }}">Додати Рецепт</a>
+                        </li>
+                    </ul>
+                    <form class="d-flex" role="search">
+                        <input class="form-control me-2" type="search" placeholder="Пошук" aria-label="Search"/>
+                        <button class="btn btn-outline-success" type="submit">Пошук</button>
+                    </form>
+                </div>
+            </div>
+        </nav>
+
+        <main class="container py-4">
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="row">
+                        <div class="col-lg-10 mx-auto">
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </main>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+            crossorigin="anonymous"></script>
+
+    {% block scripts %}
+    <script>
+        document.addEventListener("DOMContentLoaded", function(){
+            const isDesktop = window.matchMedia("(min-width: 992px)").matches;
+
+            if (isDesktop) {
+                // --- HOVER ЛОГІКА ДЛЯ ДЕСКТОПУ ---
+
+                // 1. Керування першим рівнем (для наведення на Nav Item)
+                document.querySelectorAll('.navbar .dropdown').forEach(function(everyDropdown){
+                    everyDropdown.addEventListener('mouseover', function(){
+                        this.querySelector('.dropdown-menu').classList.add('show');
+                    });
+                    everyDropdown.addEventListener('mouseout', function(){
+                        this.querySelector('.dropdown-menu').classList.remove('show');
+                    });
+                });
+
+                // 2. Керування дочірніми меню (для коректного позиціонування CSS)
+                document.querySelectorAll('.dropdown-submenu').forEach(function(everySubmenu){
+                    everySubmenu.addEventListener('mouseover', function(){
+                        this.querySelector('.dropdown-menu').classList.add('show');
+                    });
+                    everySubmenu.addEventListener('mouseout', function(){
+                        this.querySelector('.dropdown-menu').classList.remove('show');
+                    });
+                });
+
+            } else {
+                // --- CLICK ЛОГІКА ДЛЯ МОБІЛЬНИХ (ВЕРТИКАЛЬНО) ---
+                document.querySelectorAll('.dropdown-submenu > a').forEach(function(everyItem){
+                    everyItem.addEventListener('click', function(e){
+                        // Запобігаємо переходу за посиланням, якщо є підменю
+                        let nextEl = everyItem.nextElementSibling;
+                        if(nextEl && nextEl.classList.contains('dropdown-menu')){
+                            e.preventDefault();
+                            e.stopPropagation(); // Зупиняємо спливання, щоб не закрити батьківське меню
+
+                            // Закриваємо всі інші дочірні меню, крім поточного
+                            document.querySelectorAll('.dropdown-submenu .dropdown-menu.show').forEach(function(el){
+                                if (el !== nextEl) {
+                                    el.classList.remove('show');
+                                }
+                            });
+
+                            // Перемикаємо 'show' для поточного елемента (вертикальне розкриття)
+                            nextEl.classList.toggle('show');
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+    {% endblock %}
+
+</body>
+</html>
