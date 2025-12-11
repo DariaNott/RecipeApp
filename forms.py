@@ -1,11 +1,8 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, SelectField, FloatField, FieldList, FormField, SelectMultipleField
 from wtforms.validators import DataRequired, Length, NumberRange
-from models import Category
 
 
-# --- 1. Форма однієї одиниці інгредієнта ---
-# Ця форма відображає поля RecipeIngredient (title, amount, measure)
 class IngredientForm(FlaskForm):
     # Примітка: title має бути фактично ID існуючого інгредієнта,
     # але для простоти прикладу використовуємо StringField.
@@ -15,13 +12,10 @@ class IngredientForm(FlaskForm):
     measure = StringField('Міра (грам, шт., ст.л.)', validators=[DataRequired(), Length(max=20)])
 
 
-# --- 2. Головна форма рецепта ---
 class RecipeForm(FlaskForm):
     title = StringField('Назва рецепта', validators=[DataRequired(), Length(max=255)])
     instructions = TextAreaField('Інструкція приготування', validators=[DataRequired()])
 
-    # ****** ЗМІНЕНО: SelectField на SelectMultipleField ******
-    # Coerce=int потрібен, щоб значення, що повертаються, були цілими числами (ID)
     categories = SelectMultipleField(
         'Категорії',
         coerce=int,
@@ -29,7 +23,6 @@ class RecipeForm(FlaskForm):
     )
 
     def set_categories_choices(self, category_choices):
-        # category_choices: список (ID, Title)
         self.categories.choices = category_choices
 
     submit = SubmitField('Зберегти рецепт')

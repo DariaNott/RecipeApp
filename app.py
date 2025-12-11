@@ -74,7 +74,6 @@ def trim_zeros_filter(value):
     """Видаляє зайві нулі з кінця числа (наприклад, 3.00 -> 3)"""
     if value is None:
         return ""
-    # Перетворюємо в float, потім в string, використовуючи найкоротше представлення
     return ('%.2f' % float(value)).rstrip('0').rstrip('.')
 
 
@@ -152,14 +151,12 @@ def add_recipe():
 
     ingredient_titles = [
         {'title': ing.title, 'title_genitive': ing.title_genitive or ing.title}
-        # Забезпечуємо, що title_genitive не None
         for ing in ingredient_data_for_js
     ]
 
 
     if request.method == 'POST':
         try:
-            # 1. ЗБІР ОСНОВНОЇ ІНФОРМАЦІЇ
             title = request.form['title'].strip()
             description = request.form.get('description', '').strip()
             category_ids = request.form.getlist('categories')
@@ -168,14 +165,12 @@ def add_recipe():
                 flash('Потрібно вказати назву та обрати принаймні одну категорію.', 'warning')
                 return redirect(url_for('add_recipe'))
 
-            # 2. СТВОРЕННЯ ОБ'ЄКТА РЕЦЕПТА
             new_recipe = Recipe(
                 title=title,
                 description=description,
-                created_date=datetime.now()  # Виправлений імпорт datetime.now()
+                created_date=datetime.now()
             )
 
-            # 3. ЗВ'ЯЗУВАНАННЯ З КАТЕГОРІЯМИ
             selected_categories = db.session.execute(
                 select(Category).where(Category.id.in_(category_ids))
             ).scalars().all()
@@ -185,8 +180,6 @@ def add_recipe():
 
             db.session.add(new_recipe)
             db.session.flush()
-
-            # 4. ОБРОБКА ІНГРЕДІЄНТІВ (Динамічні поля)
 
             amounts = request.form.getlist('amount')
             measures = request.form.getlist('measure')
@@ -204,13 +197,11 @@ def add_recipe():
                 title_genitive_input = ingredient_titles_genitive[i].strip() if i < len(ingredient_titles_genitive) and \
                                                                                 ingredient_titles_genitive[i] else None
 
-                # Знаходимо або створюємо інгредієнт
                 existing_ingredient = db.session.execute(
                     select(Ingredient).where(Ingredient.title == title_input)
                 ).scalar_one_or_none()
 
                 if existing_ingredient is None:
-                    # Інгредієнт новий, створюємо його
                     existing_ingredient = Ingredient(
                         title=title_input,
                         title_genitive=title_genitive_input or title_input  # Зберігаємо Р.в.
@@ -218,10 +209,8 @@ def add_recipe():
                     db.session.add(existing_ingredient)
                     db.session.flush()
 
-                    # Якщо інгредієнт вже існує, але користувач ввів Р.в. для нього, ми поки що його не оновлюємо
-                # Це можна додати пізніше, але зараз зосереджуємося на створенні.
+                    #TODO: Якщо інгредієнт вже існує, але користувач ввів Р.в. для нього, ми поки що його не оновлюємо. можна додати пізніше
 
-                # Додаємо запис у таблицю зв'язку RecipeIngredient
                 recipe_ingredient = RecipeIngredient(
                     recipe_id=new_recipe.id,
                     ingredient_id=existing_ingredient.id,
@@ -230,7 +219,6 @@ def add_recipe():
                 )
                 db.session.add(recipe_ingredient)
 
-            # 5. ОБРОБКА ІНСТРУКЦІЙ (Динамічні поля)
             instruction_descriptions = request.form.getlist('instruction_description')
             step_orders = request.form.getlist('step_order')
 
@@ -245,7 +233,6 @@ def add_recipe():
                     )
                     db.session.add(step)
 
-            # 6. ЗБЕРЕЖЕННЯ ТРАНЗАКЦІЇ
             db.session.commit()
 
             flash('Рецепт успішно додано!', 'success')

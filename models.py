@@ -17,7 +17,6 @@ recipe_category_association = Table(
     Column('category_id', ForeignKey('category.id'), primary_key=True)
 )
 
-# Допоміжна таблиця для зв'язку
 class RecipeIngredient(db.Model):
     __tablename__ = 'recipe_ingredient'
 
@@ -34,30 +33,19 @@ class RecipeIngredient(db.Model):
         return f"<RecipeIngredient ingredient_id={self.ingredient_id} amount={self.amount} measure='{self.measure}'>"
 
 
-# Модель для кроків інструкції
 class InstructionStep(db.Model):
     __tablename__ = 'instruction_step'
 
     id: Mapped[int] = mapped_column(db.Integer, primary_key=True)
-
-    # FK до рецепта
     recipe_id: Mapped[int] = mapped_column(ForeignKey('recipe.id'))
-
-    # Текст самого кроку
     description: Mapped[str] = mapped_column(db.Text)
-
-    # ****** КЛЮЧОВЕ ПОЛЕ ******
-    # Це поле зберігає порядок (1, 2, 3...)
     step_order: Mapped[int] = mapped_column(db.Integer)
-
-    # Зв'язок до рецепта
     recipe: Mapped['Recipe'] = relationship(back_populates='instructions')
 
     def __repr__(self):
         return f"<InstructionStep order={self.step_order} recipe_id={self.recipe_id}>"
 
 
-# Таблиця Рецептів
 class Recipe(db.Model):
     __tablename__ = 'recipe'
 
@@ -68,20 +56,17 @@ class Recipe(db.Model):
         db.DateTime,
         default=db.func.now()
     )
-    # Зв'язок до нової таблиці InstructionStep
-    # order_by=InstructionStep.step_order ГАРАНТУЄ правильний порядок при отриманні
+
     instructions: Mapped[List[InstructionStep]] = relationship(
         back_populates='recipe',
         order_by=InstructionStep.step_order,
         cascade='all, delete-orphan'
     )
 
-    # Зв'язок до допоміжної таблиці
     recipe_ingredients: Mapped[List[RecipeIngredient]] = relationship(
         back_populates='recipe', cascade='all, delete-orphan'
     )
 
-    # Зв'язок до Category
     categories: Mapped[List['Category']] = relationship(
         secondary=recipe_category_association,
         back_populates='recipes'
@@ -91,7 +76,6 @@ class Recipe(db.Model):
         return f"<Recipe title='{self.title}'>"
 
 
-#  Таблиця Ingredient
 class Ingredient(db.Model):
     __tablename__ = 'ingredient'
 
@@ -99,7 +83,6 @@ class Ingredient(db.Model):
     title: Mapped[str] = mapped_column(unique=True)  # Унікальна назва
     title_genitive = db.Column(db.String(120), nullable=True)
 
-    # Зв'язок до допоміжної таблиці
     recipe_ingredients: Mapped[List[RecipeIngredient]] = relationship(
         back_populates='ingredient', cascade='all, delete-orphan'
     )
@@ -108,31 +91,22 @@ class Ingredient(db.Model):
         return f"<Ingredient title='{self.title}'>"
 
 
-# Таблиця Category
 class Category(db.Model):
     __tablename__ = 'category'
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(unique=True)
 
-    # ****** ПОЛЯ ДЛЯ ІЄРАРХІЇ ******
-
-    # 1. parent_id: FK, що посилається на id цієї ж таблиці (category.id)
-    # Optional[int] дозволяє полю бути NULL (тобто це категорія верхнього рівня)
     parent_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey('category.id'),
         nullable=True  # Дозволяємо бути NULL для головних категорій
     )
 
-    # 2. parent: Зв'язок до батьківської категорії (батько може бути лише один)
     parent: Mapped[Optional['Category']] = relationship(
         remote_side=[id],  # Вказуємо, що id є "віддаленою" стороною
         back_populates='children'
     )
 
-    # 3. children: Зворотний зв'язок до дочірніх категорій (дітей може бути багато)
-    # Цей зв'язок дозволить нам легко отримати всі підкатегорії (наприклад, Гарніри, М'ясо)
-    # з категорії Основні страви.
     children: Mapped[List['Category']] = relationship(
         back_populates='parent',
         cascade='all, delete-orphan',
@@ -166,7 +140,6 @@ def seed_data(app):
         print("Заповнення бази даних початковими даними...")
 
         try:
-            # 1. Create Parent categories(parent_id = NULL)
             breakfasts = Category(title='Сніданки')
             soups = Category(title='Супи')
             salads = Category(title='Салати')
@@ -181,9 +154,8 @@ def seed_data(app):
 
             db.session.add_all([breakfasts, soups, salads, main_dishes, world_cuisine, desserts, snack, sauce, drinks,
                                 hot_dishes, holiday_dishes])
-            db.session.flush()  # Отримуємо ID для батьківських елементів
+            db.session.flush()
 
-            # 2. Create children
             garnish = Category(title='Гарніри', parent=main_dishes)
             meat = Category(title='М\'ясо', parent=main_dishes)
             fish = Category(title='Риба', parent=main_dishes)
@@ -249,17 +221,16 @@ def seed_data(app):
                 description='Довести до кипіння на великому вогні, потім зменшити вогонь та варити ще приблизно 25 хвилин. Всі овочі мають бути м’якими.',
                 step_order=4)
             step5 = InstructionStep(
-                description="Коли овочі стануть м'якими, відлити більшу частину рідини в окрему чашу. Решту перебити занурювальним блендером до однорідної консистенції. Густоту крем-супу регулювати відлитою рідиною.",
+                description='Коли овочі стануть м\'якими, відлити більшу частину рідини в окрему чашу. Решту перебити занурювальним блендером до однорідної консистенції. Густоту крем-супу регулювати відлитою рідиною.',
                 step_order=5)
 
             pumpkin_soup_recipe = Recipe(
                 title='Гарбузовий крем-суп',
                 categories=[main_dishes, soups],
-                description="Ніжний та ароматний суп-пюре з гарбуза та молока.",
+                description='Ніжний та ароматний суп-пюре з гарбуза та молока.',
                 instructions=[step1, step2, step3, step4, step5],
             )
 
-            # Створення зв'язків RecipeIngredient
             ri1 = RecipeIngredient(ingredient=pumpkin, amount=300, measure='грам')
             ri2 = RecipeIngredient(ingredient=potato, amount=2, measure='шт.')
             ri3 = RecipeIngredient(ingredient=carrot, amount=1, measure='шт.')
@@ -293,11 +264,10 @@ def seed_data(app):
             meatball_recipe = Recipe(
                 title='Мітболи',
                 categories=[main_dishes, meat, sauce],
-                description="Соковиті мітболи з яловичини в томатному соусі.",
+                description='Соковиті мітболи з яловичини в томатному соусі.',
                 instructions=[step1, step2, step3, step4, step5, step6, step7, step8],
             )
 
-            # Створення зв'язків RecipeIngredient
             ri1 = RecipeIngredient(ingredient=minced_beef, amount=800, measure='грам')
             ri2 = RecipeIngredient(ingredient=tomatoes, amount=400, measure='грам')
             ri3 = RecipeIngredient(ingredient=tomato_paste, amount=50, measure='грам')
@@ -309,7 +279,6 @@ def seed_data(app):
             meatball_recipe.recipe_ingredients.extend([ri1, ri2, ri3, ri4, ri5, ri6, ri7])
             db.session.add(meatball_recipe)
 
-            # Фіксація всіх змін
             db.session.commit()
             print("✅ База даних успішно заповнена.")
 
