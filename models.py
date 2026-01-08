@@ -17,6 +17,7 @@ recipe_category_association = Table(
     Column('category_id', ForeignKey('category.id'), primary_key=True)
 )
 
+
 class RecipeIngredient(db.Model):
     __tablename__ = 'recipe_ingredient'
 
@@ -46,12 +47,21 @@ class InstructionStep(db.Model):
         return f"<InstructionStep order={self.step_order} recipe_id={self.recipe_id}>"
 
 
+class RecipeTip(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    text: Mapped[str] = mapped_column(db.Text, nullable=False)
+    recipe_id: Mapped[int] = mapped_column(db.ForeignKey("recipe.id"))
+
+    recipe: Mapped["Recipe"] = relationship(back_populates="tips")
+
 class Recipe(db.Model):
     __tablename__ = 'recipe'
 
     id: Mapped[int] = mapped_column(db.Integer, primary_key=True)
     title: Mapped[str] = mapped_column(db.String(255))
     description: Mapped[str] = mapped_column(db.Text)
+    tips: Mapped[List["RecipeTip"]] = relationship(back_populates="recipe", cascade="all, delete-orphan")
+    ##TODO: add tips in add_recipe
     created_date: Mapped[DateTime] = mapped_column(
         db.DateTime,
         default=db.func.now()
@@ -110,7 +120,7 @@ class Category(db.Model):
     children: Mapped[List['Category']] = relationship(
         back_populates='parent',
         cascade='all, delete-orphan',
-        order_by='Category.title' # Сортуємо для порядку
+        order_by='Category.title'  # Сортуємо для порядку
     )
 
     recipes: Mapped[List['Recipe']] = relationship(
@@ -120,7 +130,6 @@ class Category(db.Model):
 
     def __repr__(self):
         return f"<Category title='{self.title}' parent_id={self.parent_id}>"
-
 
 
 # --- Функція для початкового заповнення бази даних ---
@@ -215,8 +224,9 @@ def seed_data(app):
             step2 = InstructionStep(
                 description='Нарізати овочі кубіком. Картоплю нарізати крупніше ніж моркву, бо морква довше вариться. Якщо гарбуз твердий - нарізати таким же розміром як і моркву.',
                 step_order=2)
-            step3 = InstructionStep(description='Викласти овочі в каструлю. Залити молоком. Молоко можна розбавити водою (наприклад, 200 мл. молока, решта вода). Рідина має повністю покривати всі овочі. Посолити.',
-                                    step_order=3)
+            step3 = InstructionStep(
+                description='Викласти овочі в каструлю. Залити молоком. Молоко можна розбавити водою (наприклад, 200 мл. молока, решта вода). Рідина має повністю покривати всі овочі. Посолити.',
+                step_order=3)
             step4 = InstructionStep(
                 description='Довести до кипіння на великому вогні, потім зменшити вогонь та варити ще приблизно 25 хвилин. Всі овочі мають бути м’якими.',
                 step_order=4)
@@ -266,6 +276,7 @@ def seed_data(app):
                 categories=[main_dishes, meat, sauce],
                 description='Соковиті мітболи з яловичини в томатному соусі.',
                 instructions=[step1, step2, step3, step4, step5, step6, step7, step8],
+                tips=[RecipeTip(text='Соус також можна використовувати для інших страв, наприклад пасти')]
             )
 
             ri1 = RecipeIngredient(ingredient=minced_beef, amount=800, measure='грам')

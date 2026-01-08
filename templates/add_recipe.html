@@ -5,7 +5,8 @@
 {% block content %}
 <div class="row">
     <div class="col-lg-10 mx-auto">
-        <h2 class="mb-4"><img src="{{ url_for('static', filename='images/card-list.svg') }}" alt="card list" height="30"> Додати Новий Рецепт</h2>
+        <h2 class="mb-4"><img src="{{ url_for('static', filename='images/card-list.svg') }}" alt="card list"
+                              height="30"> Додати Новий Рецепт</h2>
 
         <form method="POST" action="{{ url_for('add_recipe') }}">
 
@@ -25,15 +26,15 @@
                         <label class="form-label d-block">Категорії (Оберіть одну або декілька)</label>
                         <div class="border p-3 rounded" style="max-height: 200px; overflow-y: auto;">
                             {% for category in categories %}
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox"
-                                           name="categories"
-                                           id="category_{{ category.id }}"
-                                           value="{{ category.id }}">
-                                    <label class="form-check-label" for="category_{{ category.id }}">
-                                        {{ category.title }}
-                                    </label>
-                                </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox"
+                                       name="categories"
+                                       id="category_{{ category.id }}"
+                                       value="{{ category.id }}">
+                                <label class="form-check-label" for="category_{{ category.id }}">
+                                    {{ category.title }}
+                                </label>
+                            </div>
                             {% endfor %}
                         </div>
                         <small class="form-text text-muted">Оберіть принаймні одну категорію.</small>
@@ -51,7 +52,7 @@
                 </div>
                 <div class="card-body">
                     <div id="ingredientsContainer">
-                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -59,12 +60,27 @@
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     Кроки Приготування
                     <button type="button" class="btn btn-sm btn-light" id="addStepBtn">
-                        <img src="{{ url_for('static', filename='images/plus.svg') }}" alt="plus" height="15"> Додати Крок
+                        <img src="{{ url_for('static', filename='images/plus.svg') }}" alt="plus" height="15"> Додати
+                        Крок
                     </button>
                 </div>
                 <div class="card-body">
                     <div id="instructionsContainer">
-                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4 border-info">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    Поради від автора
+                    <button type="button" class="btn btn-sm btn-light" id="addTipBtn">
+                        <img src="{{ url_for('static', filename='images/plus.svg') }}" alt="plus" height="15"> Додати
+                        пораду
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="tipsContainer">
+                    </div>
                 </div>
             </div>
 
@@ -76,22 +92,27 @@
 {% endblock %}
 
 {% block scripts %}
+{% endblock %}
 <script>
     // Тепер ingredientTitles - це масив об'єктів: [{title: "Борошно", title_genitive: "Борошна"}, ...]
     const ingredientTitles = {{ ingredient_titles_json | tojson }};
 
     const ingredientsContainer = document.getElementById('ingredientsContainer');
     const instructionsContainer = document.getElementById('instructionsContainer');
+    const tipsContainer = document.getElementById('tipsContainer');
     let ingredientCounter = 0;
     let stepCounter = 0;
+    let tipCounter = 0;
 
     document.getElementById('addIngredientBtn').addEventListener('click', addIngredientRow);
     document.getElementById('addStepBtn').addEventListener('click', addInstructionStep);
+    document.getElementById('addTipBtn').addEventListener('click', addTipRow);
 
     // Додає початкові рядки при завантаженні
     document.addEventListener('DOMContentLoaded', () => {
         addIngredientRow();
         addInstructionStep();
+        addTipRow();
     });
 
     function addIngredientRow() {
@@ -221,5 +242,30 @@
         });
         stepCounter = steps.length;
     }
+
+    function addTipRow() {
+        tipCounter++;
+        const row = document.createElement('div');
+        row.className = 'row g-2 mb-2 align-items-center tip-row';
+        row.innerHTML = `
+            <div class="col-11">
+                <input type="text" class="form-control" name="tip_description"
+                       placeholder="Наприклад: Можна замінити цукор на мед" autocomplete="off">
+            </div>
+            <div class="col-1 text-center">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-row-btn">
+                    <img src="{{ url_for('static', filename='images/trash3-fill.svg') }}" alt="remove" height="15">
+                </button>
+            </div>
+        `;
+
+        tipsContainer.appendChild(row);
+
+        row.querySelector('.remove-row-btn').addEventListener('click', () => {
+            row.remove();
+            if (tipsContainer.children.length === 0) {
+                addTipRow();
+            }
+        });
+}
 </script>
-{% endblock %}

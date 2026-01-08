@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from sqlalchemy import select, desc
-from models import db, seed_data, Recipe, Category, Ingredient, RecipeIngredient, InstructionStep
+from models import db, seed_data, Recipe, Category, Ingredient, RecipeIngredient, InstructionStep, RecipeTip
 from forms import RecipeForm
 from datetime import datetime
 import mimetypes
@@ -68,6 +68,7 @@ def format_amount(value):
         return int(value)
 
     return f"{value:.2f}"
+
 
 @app.template_filter('trim_zeros')
 def trim_zeros_filter(value):
@@ -154,7 +155,6 @@ def add_recipe():
         for ing in ingredient_data_for_js
     ]
 
-
     if request.method == 'POST':
         try:
             title = request.form['title'].strip()
@@ -209,7 +209,7 @@ def add_recipe():
                     db.session.add(existing_ingredient)
                     db.session.flush()
 
-                    #TODO: Якщо інгредієнт вже існує, але користувач ввів Р.в. для нього, ми поки що його не оновлюємо. можна додати пізніше
+                    # TODO: Якщо інгредієнт вже існує, але користувач ввів Р.в. для нього, ми поки що його не оновлюємо. можна додати пізніше
 
                 recipe_ingredient = RecipeIngredient(
                     recipe_id=new_recipe.id,
@@ -233,6 +233,16 @@ def add_recipe():
                     )
                     db.session.add(step)
 
+            tip_descriptions = request.form.getlist('tip_description')
+            for tip_text in tip_descriptions:
+                text = tip_text.strip()
+                if text:
+                    new_tip = RecipeTip(
+                        recipe_id=new_recipe.id,
+                        text=text
+                    )
+                    db.session.add(new_tip)
+
             db.session.commit()
 
             flash('Рецепт успішно додано!', 'success')
@@ -248,6 +258,7 @@ def add_recipe():
         categories=all_categories,
         ingredient_titles_json=ingredient_titles
     )
+
 
 if __name__ == '__main__':
     app.run(debug=True)
