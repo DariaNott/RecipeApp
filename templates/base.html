@@ -89,8 +89,12 @@
                              <a class="nav-link" href="{{ url_for('add_recipe') }}">Додати Рецепт</a>
                         </li>
                     </ul>
-                    <form class="d-flex" role="search">
-                        <input class="form-control me-2" type="search" placeholder="Пошук" aria-label="Search"/>
+
+                    {# ОНОВЛЕНО: Форма пошуку тепер працює з GET-запитом #}
+                    <form class="d-flex" role="search" method="GET" action="{{ url_for('index') }}">
+                        <input class="form-control me-2" type="search" name="query"
+                               placeholder="Пошук" aria-label="Search"
+                               value="{{ search_query if search_query else '' }}"/>
                         <button class="btn btn-outline-success" type="submit">Пошук</button>
                     </form>
                 </div>
@@ -118,9 +122,7 @@
 
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
-            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     {% block scripts %}
     <script>
@@ -129,8 +131,6 @@
 
             if (isDesktop) {
                 // --- HOVER ЛОГІКА ДЛЯ ДЕСКТОПУ ---
-
-                // 1. Керування першим рівнем (для наведення на Nav Item)
                 document.querySelectorAll('.navbar .dropdown').forEach(function(everyDropdown){
                     everyDropdown.addEventListener('mouseover', function(){
                         this.querySelector('.dropdown-menu').classList.add('show');
@@ -140,7 +140,6 @@
                     });
                 });
 
-                // 2. Керування дочірніми меню (для коректного позиціонування CSS)
                 document.querySelectorAll('.dropdown-submenu').forEach(function(everySubmenu){
                     everySubmenu.addEventListener('mouseover', function(){
                         this.querySelector('.dropdown-menu').classList.add('show');
@@ -151,23 +150,20 @@
                 });
 
             } else {
-                // --- CLICK ЛОГІКА ДЛЯ МОБІЛЬНИХ (ВЕРТИКАЛЬНО) ---
+                // --- CLICK ЛОГІКА ДЛЯ МОБІЛЬНИХ ---
                 document.querySelectorAll('.dropdown-submenu > a').forEach(function(everyItem){
                     everyItem.addEventListener('click', function(e){
-                        // Запобігаємо переходу за посиланням, якщо є підменю
                         let nextEl = everyItem.nextElementSibling;
                         if(nextEl && nextEl.classList.contains('dropdown-menu')){
                             e.preventDefault();
-                            e.stopPropagation(); // Зупиняємо спливання, щоб не закрити батьківське меню
+                            e.stopPropagation();
 
-                            // Закриваємо всі інші дочірні меню, крім поточного
                             document.querySelectorAll('.dropdown-submenu .dropdown-menu.show').forEach(function(el){
                                 if (el !== nextEl) {
                                     el.classList.remove('show');
                                 }
                             });
 
-                            // Перемикаємо 'show' для поточного елемента (вертикальне розкриття)
                             nextEl.classList.toggle('show');
                         }
                     });

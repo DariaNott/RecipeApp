@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
-from sqlalchemy import select, desc
+from sqlalchemy import or_, desc, select
 from models import db, seed_data, Recipe, Category, Ingredient, RecipeIngredient, InstructionStep, RecipeTip
 from forms import RecipeForm
 from datetime import datetime
@@ -102,18 +102,42 @@ def inject_global_data():
 @app.route('/')
 def index():
     page = request.args.get('page', 1, type=int)
-    base_query = select(Recipe).order_by(desc(Recipe.created_date))
+    search_query = request.args.get('query', '').strip()
+    category_id = request.args.get('category_id', type=int)
+
+    stmt = select(Recipe).order_by(desc(Recipe.created_date))
+
+    if search_query:
+        stmt = stmt.where(
+            or_(
+                Recipe.title.ilike(f"%{search_query}%"),
+                Recipe.description.ilike(f"%{search_query}%"),
+                # Пошук по назві інгредієнтів
+                Recipe.recipe_ingredients.any(
+                    RecipeIngredient.ingredient.has(Ingredient.title.ilike(f"%{search_query}%"))
+                )
+            )
+        )
+
+    if category_id:
+        stmt = stmt.where(Recipe.categories.any(Category.id == category_id))
+
     recipes_paginated = db.paginate(
-        base_query,
+        stmt,
         page=page,
         per_page=15,
         error_out=False
     )
 
+    categories = db.session.execute(select(Category).order_by(Category.title)).scalars().all()
+
     return render_template(
         'index.html',
         all_recipes=recipes_paginated.items,
-        pagination=recipes_paginated
+        pagination=recipes_paginated,
+        search_query=search_query,
+        selected_category=category_id,
+        categories=categories
     )
 
 
