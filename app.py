@@ -284,5 +284,123 @@ def add_recipe():
     )
 
 
+@app.route('/recipe/<int:recipe_id>/edit', methods=['GET', 'POST'])
+def edit_recipe(recipe_id):
+    recipe = db.get_or_404(Recipe, recipe_id)
+
+    all_categories = db.session.execute(select(Category).order_by(Category.title)).scalars().all()
+    ingredient_data_for_js = db.session.execute(
+        select(Ingredient.title, Ingredient.title_genitive).order_by(Ingredient.title)
+    ).all()
+    ingredient_titles = [
+        {'title': ing.title, 'title_genitive': ing.title_genitive or ing.title}
+        for ing in ingredient_data_for_js
+    ]
+
+    if request.method == 'POST':
+        try:
+            title = request.form['title'].strip()
+            description = request.form.get('description', '').strip()
+            category_ids = request.form.getlist('categories')
+
+            if not title or not category_ids:
+                flash('Потрібно вказати назву та обрати принаймні одну категорію.', 'warning')
+                return redirect(url_for('edit_recipe', recipe_id=recipe.id))
+
+            recipe.title = title
+            recipe.description = description
+
+            selected_categories = db.session.execute(
+                select(Category).where(Category.id.in_(category_ids))
+            ).scalars().all()
+            recipe.categories = list(selected_categories)
+
+            recipe.recipe_ingredients = []
+            recipe.instructions = []
+            recipe.tips = []
+            db.session.flush()
+
+            amounts = request.form.getlist('amount')
+            measures = request.form.getlist('measure')
+            ingredient_titles_input = request.form.getlist('ingredient_title')
+            ingredient_titles_genitive = request.form.getlist('ingredient_title_genitive')
+
+            for i in range(len(ingredient_titles_input)):
+                title_input = ingredient_titles_input[i].strip()
+                if not title_input:
+                    continue
+
+                amount_str = amounts[i].strip() if i < len(amounts) and amounts[i] else None
+                measure = measures[i].strip() if i < len(measures) and measures[i] else None
+                title_gen_input = ingredient_titles_genitive[i].strip() if i < len(ingredient_titles_genitive) and \
+                                                                           ingredient_titles_genitive[i] else None
+
+                existing_ingredient = db.session.execute(
+                    select(Ingredient).where(Ingredient.title == title_input)
+                ).scalar_one_or_none()
+
+                if existing_ingredient is None:
+                    existing_ingredient = Ingredient(
+                        title=title_input,
+                        title_genitive=title_gen_input or title_input
+                    )
+                    db.session.add(existing_ingredient)
+                    db.session.flush()
+
+                recipe_ingredient = RecipeIngredient(
+                    recipe_id=recipe.id,
+                    ingredient_id=existing_ingredient.id,
+                    amount=convert_amount(amount_str),
+                    measure=measure
+                )
+                db.session.add(recipe_ingredient)
+
+            instruction_descriptions = request.form.getlist('instruction_description')
+            step_orders = request.form.getlist('step_order')
+
+            for i in range(len(instruction_descriptions)):
+                step_desc = instruction_descriptions[i].strip()
+                if step_desc:
+                    step = InstructionStep(
+                        recipe_id=recipe.id,
+                        description=step_desc,
+                        step_order=int(step_orders[i]) if i < len(step_orders) else (i + 1)
+                    )
+                    db.session.add(step)
+
+            tip_descriptions = request.form.getlist('tip_description')
+            for tip_text in tip_descriptions:
+                text = tip_text.strip()
+                if text:
+                    new_tip = RecipeTip(
+                        recipe_id=recipe.id,
+                        text=text
+                    )
+                    db.session.add(new_tip)
+
+            db.session.commit()
+            flash('Рецепт успішно оновлено!', 'success')
+            return redirect(url_for('recipe', recipe_id=recipe.id))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Помилка при оновленні рецепту: {e}', 'danger')
+            return redirect(url_for('edit_recipe', recipe_id=recipe.id))
+
+    return render_template(
+        'edit_recipe.html',  # Або add_recipe.html, якщо ви зробите його універсальним
+        recipe=recipe,
+        categories=all_categories,
+        ingredient_titles_json=ingredient_titles
+    )
+
+@app.route('/recipe/<int:recipe_id>/delete', methods=['POST'])
+def delete_recipe(recipe_id):
+    recipe = db.get_or_404(Recipe, recipe_id)
+    db.session.delete(recipe)
+    db.session.commit()
+    flash('Рецепт видалено.', 'info')
+    return redirect(url_for('index'))
+
 if __name__ == '__main__':
     app.run(debug=True)

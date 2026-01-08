@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Редагувати: {{ recipe.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4 text-center">Редагування рецепта</h1>
+
+    <form method="POST" id="recipeForm">
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="title" class="form-label fw-bold">Назва рецепта</label>
+                            <input type="text" class="form-control form-control-lg" name="title" id="title" 
+                                   value="{{ recipe.title }}" required>
+                        </div>
+                        <div class="mb-0">
+                            <label for="description" class="form-label fw-bold">Короткий опис</label>
+                            <textarea class="form-control" name="description" id="description" rows="3">{{ recipe.description }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h5 class="m-0">Інгредієнти</h5>
+                        <button type="button" class="btn btn-sm btn-light" id="addIngredientBtn">+ Додати</button>
+                    </div>
+                    <div class="card-body" id="ingredientsContainer">
+                        </div>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="m-0">Кроки приготування</h5>
+                        <button type="button" class="btn btn-sm btn-light" id="addStepBtn">+ Додати крок</button>
+                    </div>
+                    <div class="card-body" id="instructionsContainer">
+                        </div>
+                </div>
+
+                <div class="card shadow-sm mb-4 border-info">
+                    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                        <h5 class="m-0 text-dark">Поради від автора</h5>
+                        <button type="button" class="btn btn-sm btn-light shadow-sm" id="addTipBtn">+ Додати пораду</button>
+                    </div>
+                    <div class="card-body bg-light-subtle" id="tipsContainer">
+                        </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow-sm mb-4 sticky-top" style="top: 20px;">
+                    <div class="card-header bg-dark text-white text-center">Категорії</div>
+                    <div class="card-body">
+                        <div class="row row-cols-2 row-cols-lg-1 g-2">
+                            {% for category in categories %}
+                            <div class="col">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="categories" 
+                                           value="{{ category.id }}" id="cat_{{ category.id }}"
+                                           {% if category in recipe.categories %} checked {% endif %}>
+                                    <label class="form-check-label" for="cat_{{ category.id }}">
+                                        {{ category.title }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold shadow">ЗБЕРЕГТИ ЗМІНИ</button>
+                        <a href="{{ url_for('recipe', recipe_id=recipe.id) }}" class="btn btn-link w-100 mt-2 text-muted">Скасувати</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const ingredientTitles = {{ ingredient_titles_json | tojson }};
+    const ingredientsContainer = document.getElementById('ingredientsContainer');
+    const instructionsContainer = document.getElementById('instructionsContainer');
+    const tipsContainer = document.getElementById('tipsContainer');
+
+    let stepCounter = 0;
+
+    // --- ФУНКЦІЇ ДОДАВАННЯ РЯДКІВ (ідентичні add_recipe) ---
+    function addIngredientRow(data = {}) {
+        const row = document.createElement('div');
+        row.className = 'row g-2 mb-3 align-items-end ingredient-row pb-2 border-bottom border-light';
+        row.innerHTML = `
+            <div class="col-2">
+                <input type="text" class="form-control" name="amount" value="${data.amount || ''}" placeholder="К-ть">
+            </div>
+            <div class="col-2">
+                <input type="text" class="form-control" name="measure" value="${data.measure || ''}" placeholder="Міра">
+            </div>
+            <div class="col-3 position-relative">
+                <input type="text" class="form-control ingredient-input" name="ingredient_title" 
+                       value="${data.title || ''}" placeholder="Назва (Н.в.)" required autocomplete="off">
+                <div class="autocomplete-list list-group position-absolute w-100 shadow-sm" style="z-index: 1000;"></div>
+            </div>
+            <div class="col-4">
+                <input type="text" class="form-control" name="ingredient_title_genitive" 
+                       value="${data.title_genitive || ''}" placeholder="Назва (Р.в.)">
+            </div>
+            <div class="col-1 text-center">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-row-btn">×</button>
+            </div>
+        `;
+        ingredientsContainer.appendChild(row);
+        setupAutocomplete(row.querySelector('.ingredient-input'));
+        row.querySelector('.remove-row-btn').addEventListener('click', () => row.remove());
+    }
+
+    function addInstructionStep(text = '') {
+        stepCounter++;
+        const row = document.createElement('div');
+        row.className = 'row g-2 mb-3 align-items-center instruction-row';
+        row.innerHTML = `
+            <div class="col-1 fw-bold text-primary text-center step-num">${stepCounter}.</div>
+            <div class="col-10">
+                <textarea class="form-control" name="instruction_description" rows="2" required>${text}</textarea>
+                <input type="hidden" name="step_order" value="${stepCounter}">
+            </div>
+            <div class="col-1 text-center">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-row-btn">×</button>
+            </div>
+        `;
+        instructionsContainer.appendChild(row);
+        row.querySelector('.remove-row-btn').addEventListener('click', () => {
+            row.remove();
+            updateStepNumbers();
+        });
+    }
+
+    function addTipRow(text = '') {
+        const row = document.createElement('div');
+        row.className = 'row g-2 mb-2 align-items-center tip-row';
+        row.innerHTML = `
+            <div class="col-11">
+                <input type="text" class="form-control" name="tip_description" value="${text}" placeholder="Порада...">
+            </div>
+            <div class="col-1 text-center">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-row-btn">×</button>
+            </div>
+        `;
+        tipsContainer.appendChild(row);
+        row.querySelector('.remove-row-btn').addEventListener('click', () => row.remove());
+    }
+
+    function updateStepNumbers() {
+        const steps = instructionsContainer.querySelectorAll('.instruction-row');
+        steps.forEach((step, index) => {
+            const num = index + 1;
+            step.querySelector('.step-num').textContent = num + '.';
+            step.querySelector('input[name="step_order"]').value = num;
+        });
+        stepCounter = steps.length;
+    }
+
+    // --- АВТОЗАПОВНЕННЯ (ідентичне add_recipe) ---
+    function setupAutocomplete(input) {
+        const list = input.nextElementSibling;
+        input.addEventListener('input', () => {
+            const val = input.value.toLowerCase();
+            list.innerHTML = '';
+            if (!val) return;
+            ingredientTitles.filter(i => i.title.toLowerCase().includes(val)).slice(0, 5).forEach(i => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'list-group-item list-group-item-action py-1 small';
+                btn.textContent = i.title;
+                btn.onclick = () => {
+                    input.value = i.title;
+                    input.closest('.row').querySelector('input[name="ingredient_title_genitive"]').value = i.title_genitive;
+                    list.innerHTML = '';
+                };
+                list.appendChild(btn);
+            });
+        });
+    }
+
+    // --- ІНІЦІАЛІЗАЦІЯ ДАНИМИ З БД ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // Завантажуємо інгредієнти
+        {% for ri in recipe.recipe_ingredients %}
+        addIngredientRow({
+            amount: "{{ ri.amount if ri.amount else '' }}",
+            measure: "{{ ri.measure if ri.measure else '' }}",
+            title: "{{ ri.ingredient.title }}",
+            title_genitive: "{{ ri.ingredient.title_genitive }}"
+        });
+        {% endfor %}
+
+        // Завантажуємо кроки
+        {% for step in recipe.instructions|sort(attribute='step_order') %}
+        addInstructionStep("{{ step.description | replace('\n', '\\n') | replace('\r', '') }}");
+        {% endfor %}
+
+        // Завантажуємо поради
+        {% for tip in recipe.tips %}
+        addTipRow("{{ tip.text | replace('\"', '\\\"') }}");
+        {% endfor %}
+
+        // Якщо порожньо — додаємо один порожній рядок
+        if (ingredientsContainer.children.length === 0) addIngredientRow();
+        if (instructionsContainer.children.length === 0) addInstructionStep();
+    });
+
+    document.getElementById('addIngredientBtn').onclick = () => addIngredientRow();
+    document.getElementById('addStepBtn').onclick = () => addInstructionStep();
+    document.getElementById('addTipBtn').onclick = () => addTipRow();
+</script>
+{% endblock %}

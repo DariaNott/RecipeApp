@@ -5,6 +5,17 @@
 {% block content %}
 
 <div class="row align-items-start">
+    <div class="d-flex justify-content-end mb-3 gap-2 mt-2">
+        <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="btn btn-outline-primary btn-sm px-3">
+            <img src="{{ url_for('static', filename='images/pencil.svg') }}" alt="edit" height="14" class="me-1">
+        </a>
+        <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST"
+              onsubmit="return confirm('Ви впевнені, що хочете видалити цей рецепт? Цю дію неможливо скасувати.');">
+            <button type="submit" class="btn btn-outline-danger btn-sm px-3">
+                <img src="{{ url_for('static', filename='images/trash3-fill.svg') }}" alt="delete" height="14" class="me-1">
+            </button>
+        </form>
+    </div>
     <div class="col-12">
         <div class="mb-3 mb-lg-0 text-center text-lg-start"> {# ЗМЕНШЕНО ВІДСТУП mb-5 до mb-3 #}
             <h1 id="title" class="display-3 lh-1 mb-2">{{recipe.title}}</h1> {# mb-2 для меншого відступу після
