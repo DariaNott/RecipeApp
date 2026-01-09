@@ -1,10 +1,10 @@
 from sqlalchemy import Table, Column, Integer, String, ForeignKey, Float, DateTime, func, select
 from sqlalchemy.orm import Mapped, relationship, mapped_column
 from typing import List, Optional
+from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 import logging
-import os
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -16,6 +16,11 @@ recipe_category_association = Table(
     Column('recipe_id', ForeignKey('recipe.id'), primary_key=True),
     Column('category_id', ForeignKey('category.id'), primary_key=True)
 )
+
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False) # Тут буде хеш пароля
 
 
 class RecipeIngredient(db.Model):

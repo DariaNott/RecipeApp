@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from sqlalchemy import or_, desc, select
-from models import db, seed_data, Recipe, Category, Ingredient, RecipeIngredient, InstructionStep, RecipeTip
+from models import db, seed_data, Recipe, Category, Ingredient, RecipeIngredient, InstructionStep, RecipeTip, User
 from forms import RecipeForm
 from datetime import datetime
 import mimetypes
@@ -146,6 +147,13 @@ def recipe(recipe_id):
     required_recipe = db.get_or_404(Recipe, recipe_id)
     return render_template('recipe.html', recipe=required_recipe)
 
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login' # Куди перенаправляти, якщо не залогінений
+
+@login_manager.user_loader
+def load_user(user_id):
+    return db.session.get(User, int(user_id))
 
 # helper for add_recipe()
 def convert_amount(amount_str):
@@ -166,6 +174,7 @@ def convert_amount(amount_str):
 
 
 @app.route('/add_recipe', methods=['GET', 'POST'])
+@login_required
 def add_recipe():
     all_categories = db.session.execute(select(Category).order_by(Category.title)).scalars().all()
 
@@ -285,6 +294,7 @@ def add_recipe():
 
 
 @app.route('/recipe/<int:recipe_id>/edit', methods=['GET', 'POST'])
+@login_required
 def edit_recipe(recipe_id):
     recipe = db.get_or_404(Recipe, recipe_id)
 
@@ -395,6 +405,7 @@ def edit_recipe(recipe_id):
     )
 
 @app.route('/recipe/<int:recipe_id>/delete', methods=['POST'])
+@login_required
 def delete_recipe(recipe_id):
     recipe = db.get_or_404(Recipe, recipe_id)
     db.session.delete(recipe)
