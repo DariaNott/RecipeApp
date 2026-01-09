@@ -71,6 +71,11 @@ def format_amount(value):
     return f"{value:.2f}"
 
 
+## Register filters
+app.jinja_env.filters['datetime'] = format_datetime
+app.jinja_env.filters['amount'] = format_amount
+
+
 @app.template_filter('trim_zeros')
 def trim_zeros_filter(value):
     """Видаляє зайві нулі з кінця числа (наприклад, 3.00 -> 3)"""
@@ -79,9 +84,23 @@ def trim_zeros_filter(value):
     return ('%.2f' % float(value)).rstrip('0').rstrip('.')
 
 
-## Register filters
-app.jinja_env.filters['datetime'] = format_datetime
-app.jinja_env.filters['amount'] = format_amount  # РЕЄСТРУЄМО НОВИЙ ФІЛЬТР
+@app.template_filter('link_recipes')
+def link_recipes(text):
+    if not text: return ""
+    # Шукаємо текст у подвійних дужках [[Назва]]
+    pattern = r'\[\[(.*?)\]\]'
+
+    def replace_with_link(match):
+        recipe_title = match.group(1)
+        # Шукаємо рецепт у базі за назвою
+        target_recipe = db.session.execute(select(Recipe).where(Recipe.title == recipe_title)).scalar_one_or_none()
+        if target_recipe:
+            url = url_for('recipe', recipe_id=target_recipe.id)
+            return f'<a href="{url}">{recipe_title}</a>'
+        return recipe_title
+
+    linked_text = re.sub(pattern, replace_with_link, text)
+    return linked_text
 
 
 # ----------------------------------------------------
@@ -147,13 +166,16 @@ def recipe(recipe_id):
     required_recipe = db.get_or_404(Recipe, recipe_id)
     return render_template('recipe.html', recipe=required_recipe)
 
+
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login' # Куди перенаправляти, якщо не залогінений
+login_manager.login_view = 'login'  # Куди перенаправляти, якщо не залогінений
+
 
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -170,11 +192,13 @@ def login():
         flash('Невірний логін або пароль', 'danger')
     return render_template('login.html')
 
+
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
 
 # helper for add_recipe()
 def convert_amount(amount_str):
@@ -425,6 +449,7 @@ def edit_recipe(recipe_id):
         ingredient_titles_json=ingredient_titles
     )
 
+
 @app.route('/recipe/<int:recipe_id>/delete', methods=['POST'])
 @login_required
 def delete_recipe(recipe_id):
@@ -433,6 +458,7 @@ def delete_recipe(recipe_id):
     db.session.commit()
     flash('Рецепт видалено.', 'info')
     return redirect(url_for('index'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)

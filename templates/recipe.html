@@ -22,7 +22,7 @@
     <div class="col-12">
         <div class="mb-3 mb-lg-0 text-center text-lg-start">
             <h1 id="title" class="display-3 lh-1 mb-2">{{recipe.title}}</h1>
-            <p id="title-desc" class="lead fw-normal text-muted mb-3">{{recipe.description}}</p>
+            <p id="title-desc" class="lead fw-normal text-muted mb-3">{{recipe.description | link_recipes | safe }}</p>
             <p class="text-end text-muted small">Створено: {{ recipe.created_date | datetime }}</p>
 
         </div>
@@ -98,7 +98,7 @@
         {% if recipe.instructions %}
         <ol>
             {% for step in recipe.instructions %}
-            <li>{{step.description}}</li>
+            <li>{{step.description | link_recipes | safe }}</li>
             {% endfor %}
         </ol>
         {% else %}
