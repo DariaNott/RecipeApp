@@ -155,6 +155,27 @@ login_manager.login_view = 'login' # Куди перенаправляти, як
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = db.session.execute(select(User).where(User.username == username)).scalar_one_or_none()
+
+        if user and user.check_password(password):
+            login_user(user)
+            flash('Ви успішно увійшли!', 'success')
+            return redirect(url_for('index'))
+
+        flash('Невірний логін або пароль', 'danger')
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
+
 # helper for add_recipe()
 def convert_amount(amount_str):
     if not amount_str:
