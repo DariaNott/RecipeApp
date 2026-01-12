@@ -12,8 +12,8 @@ def import_everything():
         print("🚀 Початок імпорту даних...")
 
         # --- 1. КАТЕГОРІЇ (з урахуванням ієрархії) ---
-        if os.path.exists('categories.json'):
-            with open('categories.json', 'r', encoding='utf-8') as f:
+        if os.path.exists('resources/categories.json'):
+            with open('resources/categories.json', 'r', encoding='utf-8') as f:
                 cats_data = json.load(f)
 
             # Спершу створюємо всі назви, щоб уникнути помилок parent_id
@@ -35,8 +35,8 @@ def import_everything():
             print("✅ Категорії та їх ієрархія імпортовані.")
 
         # --- 2. ІНГРЕДІЄНТИ (збереження ваших ID) ---
-        if os.path.exists('ingredients.json'):
-            with open('ingredients.json', 'r', encoding='utf-8') as f:
+        if os.path.exists('resources/ingredients.json'):
+            with open('resources/ingredients.json', 'r', encoding='utf-8') as f:
                 ings_data = json.load(f)
             for i in ings_data:
                 # Перевіряємо за ID, щоб не дублювати
@@ -51,8 +51,8 @@ def import_everything():
             print("✅ Словник інгредієнтів імпортовано.")
 
         # --- 3. РЕЦЕПТИ ---
-        if os.path.exists('recipes.json'):
-            with open('recipes.json', 'r', encoding='utf-8') as f:
+        if os.path.exists('resources/recipes.json'):
+            with open('resources/recipes.json', 'r', encoding='utf-8') as f:
                 recipes_data = json.load(f)
 
             for r_data in recipes_data:
