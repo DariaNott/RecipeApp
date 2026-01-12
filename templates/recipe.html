@@ -51,7 +51,7 @@
         </h4>
         <ul>
             {% for tip in recipe.tips %}
-            <li>{{ tip.text }}</li>
+            <li>{{ tip.text  | link_recipes | safe }}</li>
             {% endfor %}
         </ul>
     </div>
