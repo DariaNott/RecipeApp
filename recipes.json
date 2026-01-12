@@ -4,10 +4,10 @@
     "description": "Солодка випічка з пухкою дрібнопористою структурою.",
     "category_names": ["Випічка"],
    "ingredients": [
-      {"id": 4, "amount": 75, "measure": "г"},
-      {"id": 3, "amount": 3, "measure": "шт"},
-      {"id": 1, "amount": 90, "measure": "г"},
-      {"id": 5, "amount": 15, "measure": "г"}
+      {"id": 13, "amount": 75, "measure": "г"},
+      {"id": 73, "amount": 3, "measure": "шт"},
+      {"id": 2, "amount": 90, "measure": "г"},
+      {"id": 32, "amount": 15, "measure": "г"}
     ],
     "instructions": [
       {"step": 1, "text": "Збити жовтки з цукром (дві третини) в тягучий світлий крем."},
@@ -24,9 +24,9 @@
     "description": "Стабільний, густий крем. Підходить для декору капкейків, тістечок та тортів.",
     "category_names": ["Крема"],
    "ingredients": [
-      {"id": 6, "amount": 125, "measure": "г"},
-      {"id": 7, "amount": 65, "measure": "г"},
-      {"id": 8, "amount": 50, "measure": "г"}
+      {"id": 17, "amount": 125, "measure": "г"},
+      {"id": 3, "amount": 65, "measure": "г"},
+      {"id": 38, "amount": 50, "measure": "г"}
     ],
     "instructions": [
       {"step": 1, "text": "Вершкове масло збити з цукровою пудрою до отримання пишної легкої світлої маси."},
@@ -42,9 +42,9 @@
     "description": "Ромові кульки з легким пікантним посмаком, що переносять назад у дитинство.",
     "category_names": ["Десерти"],
    "ingredients": [
-     {"id": 7, "amount": 100, "measure": "г"},
-     {"id": 10, "amount": 70, "measure": "г"},
-     {"id": 9, "amount": 4, "measure": "ч. л."}
+     {"id": 3, "amount": 100, "measure": "г"},
+     {"id": 24, "amount": 70, "measure": "г"},
+     {"id": 57, "amount": 4, "measure": "ч. л."}
     ],
     "instructions": [
       {"step": 1, "text": "З вечора випекти [[Бісквіт]]."},
