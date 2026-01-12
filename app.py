@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from sqlalchemy import or_, desc, select
-from models import db, seed_data, Recipe, Category, Ingredient, RecipeIngredient, InstructionStep, RecipeTip, User
+from models import db, Recipe, Category, Ingredient, RecipeIngredient, InstructionStep, RecipeTip, User
 from forms import RecipeForm
 from datetime import datetime
 import mimetypes
@@ -20,8 +20,6 @@ db.init_app(app)
 
 with app.app_context():
     db.create_all()
-    seed_data(app)
-
 
 # ----------------------------------------------------
 # Custom filters Jinja2
