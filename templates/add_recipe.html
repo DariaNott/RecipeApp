@@ -5,8 +5,10 @@
 {% block content %}
 <div class="row">
     <div class="col-lg-10 mx-auto">
-        <h2 class="mb-4"><img src="{{ url_for('static', filename='images/card-list.svg') }}" alt="card list"
-                              height="30"> Додати Новий Рецепт</h2>
+        <h2 class="mb-4">
+            <img src="{{ url_for('static', filename='images/card-list.svg') }}" alt="card list" height="30">
+            Додати Новий Рецепт
+        </h2>
 
         <form method="POST" action="{{ url_for('add_recipe') }}">
 
@@ -23,14 +25,12 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label d-block">Категорії (Оберіть одну або декілька)</label>
+                        <label class="form-label d-block">Категорії</label>
                         <div class="border p-3 rounded" style="max-height: 200px; overflow-y: auto;">
                             {% for category in categories %}
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="checkbox"
-                                       name="categories"
-                                       id="category_{{ category.id }}"
-                                       value="{{ category.id }}">
+                                <input class="form-check-input" type="checkbox" name="categories"
+                                       id="category_{{ category.id }}" value="{{ category.id }}">
                                 <label class="form-check-label" for="category_{{ category.id }}">
                                     {{ category.title }}
                                 </label>
@@ -39,7 +39,6 @@
                         </div>
                         <small class="form-text text-muted">Оберіть принаймні одну категорію.</small>
                     </div>
-
                 </div>
             </div>
 
@@ -51,8 +50,7 @@
                     </button>
                 </div>
                 <div class="card-body">
-                    <div id="ingredientsContainer">
-                    </div>
+                    <div id="ingredientsContainer"></div>
                 </div>
             </div>
 
@@ -60,13 +58,11 @@
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     Кроки Приготування
                     <button type="button" class="btn btn-sm btn-light" id="addStepBtn">
-                        <img src="{{ url_for('static', filename='images/plus.svg') }}" alt="plus" height="15"> Додати
-                        Крок
+                        <img src="{{ url_for('static', filename='images/plus.svg') }}" alt="plus" height="15"> Додати Крок
                     </button>
                 </div>
                 <div class="card-body">
-                    <div id="instructionsContainer">
-                    </div>
+                    <div id="instructionsContainer"></div>
                 </div>
             </div>
 
@@ -74,36 +70,34 @@
                 <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
                     Поради від автора
                     <button type="button" class="btn btn-sm btn-light" id="addTipBtn">
-                        <img src="{{ url_for('static', filename='images/plus.svg') }}" alt="plus" height="15"> Додати
-                        пораду
+                        <img src="{{ url_for('static', filename='images/plus.svg') }}" alt="plus" height="15"> Додати пораду
                     </button>
                 </div>
                 <div class="card-body">
-                    <div id="tipsContainer">
-                    </div>
+                    <div id="tipsContainer"></div>
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-success btn-lg w-100">Зберегти Рецепт</button>
+            <button type="submit" class="btn btn-success btn-lg w-100 mb-5">Зберегти Рецепт</button>
         </form>
     </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
-{% endblock %}
 <script>
-    // Тепер ingredientTitles - це масив об'єктів: [{title: "Борошно", title_genitive: "Борошна"}, ...]
+    // Отримання списку інгредієнтів з Flask
     const ingredientTitles = {{ ingredient_titles_json | tojson }};
 
     const ingredientsContainer = document.getElementById('ingredientsContainer');
     const instructionsContainer = document.getElementById('instructionsContainer');
     const tipsContainer = document.getElementById('tipsContainer');
+
     let ingredientCounter = 0;
     let stepCounter = 0;
     let tipCounter = 0;
 
+    // Обробники подій для кнопок додавання
     document.getElementById('addIngredientBtn').addEventListener('click', addIngredientRow);
     document.getElementById('addStepBtn').addEventListener('click', addInstructionStep);
     document.getElementById('addTipBtn').addEventListener('click', addTipRow);
@@ -120,10 +114,12 @@
         const row = document.createElement('div');
         row.className = 'row g-2 mb-3 align-items-end ingredient-row';
         row.innerHTML = `
-            <div class="col-2"> <label for="amount_${ingredientCounter}" class="form-label">К-ть</label>
+            <div class="col-2">
+                <label for="amount_${ingredientCounter}" class="form-label">К-ть</label>
                 <input type="text" class="form-control" name="amount" id="amount_${ingredientCounter}">
             </div>
-            <div class="col-2"> <label for="measure_${ingredientCounter}" class="form-label">Міра</label>
+            <div class="col-2">
+                <label for="measure_${ingredientCounter}" class="form-label">Міра</label>
                 <input type="text" class="form-control" name="measure" id="measure_${ingredientCounter}">
             </div>
             <div class="col-3 position-relative">
@@ -131,7 +127,8 @@
                 <input type="text" class="form-control ingredient-input" name="ingredient_title" id="ingredient_title_${ingredientCounter}" autocomplete="off" required>
                 <div class="autocomplete-list list-group position-absolute w-100 shadow-sm" style="z-index: 1000;"></div>
             </div>
-            <div class="col-4"> <label for="ingredient_title_genitive_${ingredientCounter}" class="form-label text-muted">Інгредієнт (Р.в., кого/чого?)</label>
+            <div class="col-4">
+                <label for="ingredient_title_genitive_${ingredientCounter}" class="form-label text-muted small">Інгредієнт (Р.в.)</label>
                 <input type="text" class="form-control" name="ingredient_title_genitive" id="ingredient_title_genitive_${ingredientCounter}">
             </div>
             <div class="col-1 text-center">
@@ -140,51 +137,37 @@
                 </button>
             </div>
         `;
-
         ingredientsContainer.appendChild(row);
 
-        // Логіка видалення рядка
         row.querySelector('.remove-row-btn').addEventListener('click', () => {
             row.remove();
-            if (ingredientsContainer.children.length === 0) {
-                addIngredientRow();
-            }
+            if (ingredientsContainer.children.length === 0) addIngredientRow();
         });
 
-        // Логіка автозаповнення
         setupAutocomplete(row.querySelector('.ingredient-input'));
     }
 
     function setupAutocomplete(inputElement) {
         const wrapper = inputElement.closest('.position-relative');
         const autocompleteList = wrapper.querySelector('.autocomplete-list');
-
-        // Знаходимо поле для родового відмінка в поточному рядку
         const row = inputElement.closest('.ingredient-row');
         const genitiveInput = row.querySelector('input[name="ingredient_title_genitive"]');
-
 
         inputElement.addEventListener('input', function() {
             const query = this.value.toLowerCase();
             autocompleteList.innerHTML = '';
+            if (!query) return;
 
-            if (!query) {
-                return;
-            }
-
-            // ЗМІНА: Фільтруємо об'єкти за властивістю 'title'
             ingredientTitles.filter(ing => ing.title.toLowerCase().includes(query))
                             .slice(0, 5)
                             .forEach(ing => {
                 const item = document.createElement('button');
                 item.type = 'button';
-                item.className = 'list-group-item list-group-item-action';
+                item.className = 'list-group-item list-group-item-action py-1 px-2 small';
                 item.textContent = ing.title;
 
-                // ЗМІНА: Обробник кліку тепер використовує об'єкт 'ing'
                 item.addEventListener('click', () => {
                     inputElement.value = ing.title;
-                    // НОВЕ: Заповнюємо поле родового відмінка
                     genitiveInput.value = ing.title_genitive;
                     autocompleteList.innerHTML = '';
                 });
@@ -192,13 +175,10 @@
             });
         });
 
-        // Приховувати список, коли фокус втрачено
-        inputElement.addEventListener('blur', function() {
-            // Затримка, щоб дозволити клік на елементі списку
+        inputElement.addEventListener('blur', () => {
             setTimeout(() => autocompleteList.innerHTML = '', 200);
         });
     }
-
 
     function addInstructionStep() {
         stepCounter++;
@@ -206,11 +186,11 @@
         row.className = 'row g-2 mb-3 align-items-center instruction-row';
         row.innerHTML = `
             <div class="col-1 text-center">
-                <h5 class="m-0 text-muted">${stepCounter}.</h5>
+                <h5 class="m-0 text-muted step-num">${stepCounter}.</h5>
                 <input type="hidden" name="step_order" value="${stepCounter}">
             </div>
             <div class="col-10">
-                <textarea class="form-control" name="instruction_description" rows="2" placeholder="Опишіть крок приготування" required></textarea>
+                <textarea class="form-control" name="instruction_description" rows="2" placeholder="Опишіть крок..." required></textarea>
             </div>
             <div class="col-1 text-center">
                 <button type="button" class="btn btn-danger remove-row-btn">
@@ -218,39 +198,32 @@
                 </button>
             </div>
         `;
-
         instructionsContainer.appendChild(row);
         updateStepNumbers();
 
-        // Логіка видалення рядка
         row.querySelector('.remove-row-btn').addEventListener('click', () => {
             row.remove();
             updateStepNumbers();
-            if (instructionsContainer.children.length === 0) {
-                addInstructionStep();
-            }
+            if (instructionsContainer.children.length === 0) addInstructionStep();
         });
     }
 
     function updateStepNumbers() {
-        // Перераховуємо всі кроки після додавання/видалення
         const steps = instructionsContainer.querySelectorAll('.instruction-row');
         steps.forEach((step, index) => {
             const order = index + 1;
-            step.querySelector('h5').textContent = `${order}.`;
+            step.querySelector('.step-num').textContent = `${order}.`;
             step.querySelector('input[name="step_order"]').value = order;
         });
         stepCounter = steps.length;
     }
 
     function addTipRow() {
-        tipCounter++;
         const row = document.createElement('div');
         row.className = 'row g-2 mb-2 align-items-center tip-row';
         row.innerHTML = `
             <div class="col-11">
-                <input type="text" class="form-control" name="tip_description"
-                       placeholder="Наприклад: Можна замінити цукор на мед" autocomplete="off">
+                <input type="text" class="form-control" name="tip_description" placeholder="Корисна порада..." autocomplete="off">
             </div>
             <div class="col-1 text-center">
                 <button type="button" class="btn btn-outline-danger btn-sm remove-row-btn">
@@ -258,14 +231,12 @@
                 </button>
             </div>
         `;
-
         tipsContainer.appendChild(row);
 
         row.querySelector('.remove-row-btn').addEventListener('click', () => {
             row.remove();
-            if (tipsContainer.children.length === 0) {
-                addTipRow();
-            }
+            if (tipsContainer.children.length === 0) addTipRow();
         });
-}
+    }
 </script>
+{% endblock %}
