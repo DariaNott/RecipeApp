@@ -6,15 +6,16 @@ from forms import RecipeForm
 from datetime import datetime
 import mimetypes
 import re
+import os
 
 # TODO: перейти на веб-сервер Nginx + Gunicorn перед викатом в прод
 app = Flask(__name__)
 mimetypes.add_type('image/svg+xml', '.svg')
 
 # --- DB initialisation  ---
-app.config['SECRET_KEY'] = 'your_secret_key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///recipes.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.environ.get('FLASK_KEY')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URI','sqlite:///recipes.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.environ.get('SQL_TRACK_MODS', False)
 
 db.init_app(app)
 
@@ -459,4 +460,4 @@ def delete_recipe(recipe_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
