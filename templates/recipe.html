@@ -34,7 +34,7 @@
         <h5 class="text-muted">Категорії:</h5>
         {% if recipe.categories %}
         {% for category in recipe.categories %}
-        <a href="/recipes?category_id={{ category.id }}" class="badge bg-secondary text-decoration-none">
+        <a href="/?category_id={{ category.id }}" class="badge bg-secondary text-decoration-none">
             {{ category.title }}
         </a>
         {% endfor %}

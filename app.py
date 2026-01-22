@@ -9,6 +9,7 @@ import re
 import os
 
 # TODO: перейти на веб-сервер Nginx + Gunicorn перед викатом в прод
+# TODO: search when clicking on category
 app = Flask(__name__)
 mimetypes.add_type('image/svg+xml', '.svg')
 
