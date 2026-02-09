@@ -73,7 +73,6 @@ class Recipe(db.Model):
     title: Mapped[str] = mapped_column(db.String(255))
     description: Mapped[str] = mapped_column(db.Text)
     tips: Mapped[List["RecipeTip"]] = relationship(back_populates="recipe", cascade="all, delete-orphan")
-    ##TODO: add tips in add_recipe
     created_date: Mapped[DateTime] = mapped_column(
         db.DateTime,
         default=db.func.now()

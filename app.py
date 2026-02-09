@@ -1,3 +1,5 @@
+from itertools import product
+
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from sqlalchemy import or_, desc, select
@@ -9,13 +11,12 @@ import re
 import os
 
 # TODO: перейти на веб-сервер Nginx + Gunicorn перед викатом в прод
-# TODO: search when clicking on category
 app = Flask(__name__)
 mimetypes.add_type('image/svg+xml', '.svg')
 
 # --- DB initialisation  ---
 app.config['SECRET_KEY'] = os.environ.get('FLASK_KEY')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URI','sqlite:///recipes.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URI', 'sqlite:///recipes.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.environ.get('SQL_TRACK_MODS', False)
 
 db.init_app(app)
@@ -23,16 +24,19 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
 
+
 # ----------------------------------------------------
 # Custom filters Jinja2
 # ----------------------------------------------------
 
+@app.template_filter('datetime')
 def format_datetime(value, format="%d.%m.%Y"):
     if value is None:
         return ""
     return value.strftime(format)
 
 
+@app.template_filter('trim_zeros')
 def format_amount(value):
     """
     Форматує числову кількість:
@@ -69,19 +73,6 @@ def format_amount(value):
         return int(value)
 
     return f"{value:.2f}"
-
-
-## Register filters
-app.jinja_env.filters['datetime'] = format_datetime
-app.jinja_env.filters['amount'] = format_amount
-
-
-@app.template_filter('trim_zeros')
-def trim_zeros_filter(value):
-    """Видаляє зайві нулі з кінця числа (наприклад, 3.00 -> 3)"""
-    if value is None:
-        return ""
-    return ('%.2f' % float(value)).rstrip('0').rstrip('.')
 
 
 @app.template_filter('link_recipes')
@@ -460,5 +451,17 @@ def delete_recipe(recipe_id):
     return redirect(url_for('index'))
 
 
+def lc_task(nums):
+    result = []
+    product = 1
+    for i in range(len(nums)):
+        result.append(product)
+    return result
+
+
 if __name__ == '__main__':
     app.run(debug=False)
+    # print(lc_task([1, 2, 3, 4]))
+    # # [24, 12, 8, 6]
+    # print(lc_task([-1, 1, 0, -3, 3]))
+    # #  [0, 0, 9, 0, 0]

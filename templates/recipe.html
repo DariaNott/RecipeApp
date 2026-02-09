@@ -69,8 +69,6 @@
 
                 {% if ri.amount and ri.measure %}
                 {{ ri.amount | round(2) | trim_zeros }} {{ ri.measure }}
-
-                {# ***** ЗМІНА: Використовуємо Родовий відмінок ***** #}
                 {{ ri.ingredient.title_genitive or ri.ingredient.title }}
 
                 {% elif ri.amount %}
@@ -79,7 +77,6 @@
                 {{ ri.ingredient.title_genitive or ri.ingredient.title }}
 
                 {% else %}
-                {# Сценарій 3: Кількість НЕ ВСТАНОВЛЕНА (Сіль за смаком) #}
                 {{ ri.ingredient.title }}
                 {% endif %}
 
