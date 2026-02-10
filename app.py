@@ -451,17 +451,5 @@ def delete_recipe(recipe_id):
     return redirect(url_for('index'))
 
 
-def lc_task(nums):
-    result = []
-    product = 1
-    for i in range(len(nums)):
-        result.append(product)
-    return result
-
-
 if __name__ == '__main__':
     app.run(debug=False)
-    # print(lc_task([1, 2, 3, 4]))
-    # # [24, 12, 8, 6]
-    # print(lc_task([-1, 1, 0, -3, 3]))
-    # #  [0, 0, 9, 0, 0]
