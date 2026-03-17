@@ -112,44 +112,40 @@ def inject_global_data():
 
 @app.route('/')
 def index():
+    # 1. Отримуємо параметри
     page = request.args.get('page', 1, type=int)
-    search_query = request.args.get('query', '').strip()
-    category_id = request.args.get('category_id', type=int)
+    sort_option = request.args.get('sort', 'newest')  # Перевірте, що тут 'sort'
+    query = request.args.get('query', '')
+    cat_id = request.args.get('category_id', type=int)
 
-    stmt = select(Recipe).order_by(desc(Recipe.created_date))
+    # 2. Будуємо запит
+    stmt = select(Recipe)
 
-    if search_query:
-        stmt = stmt.where(
-            or_(
-                Recipe.title.ilike(f"%{search_query}%"),
-                Recipe.description.ilike(f"%{search_query}%"),
-                # Пошук по назві інгредієнтів
-                Recipe.recipe_ingredients.any(
-                    RecipeIngredient.ingredient.has(Ingredient.title.ilike(f"%{search_query}%"))
-                )
-            )
-        )
+    # 3. Сортування (Цей блок має бути ДО пагінації)
+    if sort_option == 'name_asc':
+        stmt = stmt.order_by(Recipe.title.asc())
+    elif sort_option == 'name_desc':
+        stmt = stmt.order_by(Recipe.title.desc())
+    elif sort_option == 'oldest':
+        stmt = stmt.order_by(Recipe.created_date.asc())
+    else:
+        stmt = stmt.order_by(Recipe.created_date.desc())
 
-    if category_id:
-        stmt = stmt.where(Recipe.categories.any(Category.id == category_id))
+    # 4. Фільтрація
+    if query:
+        stmt = stmt.where(Recipe.title.ilike(f"%{query}%"))
+    if cat_id:
+        stmt = stmt.where(Recipe.categories.any(Category.id == cat_id))
 
-    recipes_paginated = db.paginate(
-        stmt,
-        page=page,
-        per_page=15,
-        error_out=False
-    )
+    # 5. Пагінація
+    pagination = db.paginate(stmt, page=page, per_page=9)
 
-    categories = db.session.execute(select(Category).order_by(Category.title)).scalars().all()
-
-    return render_template(
-        'index.html',
-        all_recipes=recipes_paginated.items,
-        pagination=recipes_paginated,
-        search_query=search_query,
-        selected_category=category_id,
-        categories=categories
-    )
+    return render_template('index.html',
+                           all_recipes=pagination.items,
+                           pagination=pagination,
+                           current_sort=sort_option,  # Обов'язково передаємо назад!
+                           selected_category=cat_id,
+                           search_query=query)
 
 
 @app.route('/recipe/<int:recipe_id>')

@@ -1,91 +1,164 @@
 {% extends "base.html" %}
 
 {% block title %}
-    {% if search_query %} Пошук: {{ search_query }} {% else %} Останні Рецепти {% endif %}
+{% if search_query %} Пошук: {{ search_query }} {% else %} Останні Рецепти {% endif %}
 {% endblock %}
 
 {% block content %}
 
 <h2 class="mb-4">
     {% if search_query %}
-        Результати пошуку: "{{ search_query }}"
+    Результати пошуку: "{{ search_query }}"
     {% elif selected_category %}
-        Категорія:
-        {% for cat in categories if cat.id == selected_category %}
-            {{ cat.title }}
-        {% endfor %}
+    Категорія:
+    {% for cat in categories if cat.id == selected_category %}
+    {{ cat.title }}
+    {% endfor %}
     {% else %}
-        Всі рецепти
+    Всі рецепти
     {% endif %}
 </h2>
 
-<div class="row row-cols-1 row-cols-lg-3 g-4">
-
-    {% for recipe in all_recipes %}
-
-    <div class="col">
-        <div id="feed-item-{{recipe.id}}" class="recipe-preview card h-100 shadow-sm p-3">
-            <h3 class="fs-4 card-title">{{ recipe.title }}</h3>
-
-            <p class="card-text text-muted">
-                {{ recipe.description | truncate(120) }}
-            </p>
-
-            <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-end">
-                <a href="{{ url_for('recipe', recipe_id=recipe.id) }}" class="icon-link">
-                    Читати повністю
-                    <img src="{{ url_for('static', filename='images/book.svg') }}" alt="book" height="20">
-                </a>
-            </div>
-        </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="text-muted">
+        Знайдено: {{ pagination.total }} рецептів
     </div>
-
-    {% else %}
-    <div class="col-12">
-        <div class="alert alert-info">
-            За вашим запитом нічого не знайдено.
-            <a href="{{ url_for('index') }}" class="alert-link">Повернутися до всіх рецептів.</a>
-        </div>
+    <div class="dropdown">
+        <button class="btn btn-light btn-sm border dropdown-toggle" type="button" id="sortDropdown"
+                data-bs-toggle="dropdown">
+            Сортувати:
+            {% if current_sort == 'name_asc' %}А-Я
+            {% elif current_sort == 'name_desc' %}Я-А
+            {% elif current_sort == 'oldest' %}Спочатку старі
+            {% else %}Спочатку нові{% endif %}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+            <li><a class="dropdown-item sort-link {% if current_sort == 'newest' %}active{% endif %}" href="#"
+                   data-sort="newest">Спочатку нові</a></li>
+            <li><a class="dropdown-item sort-link {% if current_sort == 'oldest' %}active{% endif %}" href="#"
+                   data-sort="oldest">Спочатку старі</a></li>
+            <li>
+                <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item sort-link {% if current_sort == 'name_asc' %}active{% endif %}" href="#"
+                   data-sort="name_asc">Від А до Я</a></li>
+            <li><a class="dropdown-item sort-link {% if current_sort == 'name_desc' %}active{% endif %}" href="#"
+                   data-sort="name_desc">Від Я до А</a></li>
+        </ul>
     </div>
-    {% endfor %}
-
 </div>
 
-{% if pagination.pages > 1 %}
-<nav aria-label="Pagination" class="mt-5">
-    <ul class="pagination justify-content-center">
+<div id="main-content-area">
+    <div class="row row-cols-1 row-cols-lg-3 g-4">
+        {% for recipe in all_recipes %}
+        <div class="col">
+            <div id="feed-item-{{recipe.id}}" class="recipe-preview card h-100 shadow-sm p-3">
+                <h3 class="fs-4 card-title">{{ recipe.title }}</h3>
+                <p class="card-text text-muted">
+                    {{ recipe.description | truncate(120) }}
+                </p>
+                <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-end">
+                    <a href="{{ url_for('recipe', recipe_id=recipe.id) }}" class="icon-link text-decoration-none">
+                        Читати повністю
+                        <img src="{{ url_for('static', filename='images/book.svg') }}" alt="book" height="20">
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                За вашим запитом нічого не знайдено.
+                <a href="{{ url_for('index') }}" class="alert-link">Повернутися до всіх рецептів.</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 
-        {# Кнопка "Попередня" #}
-        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-            <a class="page-link"
-               href="{{ url_for('index', page=pagination.prev_num, query=search_query, category_id=selected_category) if pagination.has_prev else '#' }}">
-                Попередня
-            </a>
-        </li>
+    {% if pagination.pages > 1 %}
+    <nav aria-label="Pagination" class="mt-5">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link"
+                   href="{{ url_for('index', page=pagination.prev_num, query=search_query, category_id=selected_category, sort=current_sort) if pagination.has_prev else '#' }}">
+                    Попередня
+                </a>
+            </li>
 
-        {# Посилання на сторінки (1, 2, 3...) #}
-        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
             {% if p %}
             <li class="page-item {% if p == pagination.page %}active{% endif %}">
-                {# Додаємо query та category_id до посилання, щоб не втратити пошук при зміні сторінки #}
-                <a class="page-link" href="{{ url_for('index', page=p, query=search_query, category_id=selected_category) }}">
+                <a class="page-link"
+                   href="{{ url_for('index', page=p, query=search_query, category_id=selected_category, sort=current_sort) }}">
                     {{ p }}
                 </a>
             </li>
             {% else %}
             <li class="page-item disabled"><span class="page-link">...</span></li>
             {% endif %}
-        {% endfor %}
+            {% endfor %}
 
-        {# Кнопка "Наступна" #}
-        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-            <a class="page-link"
-               href="{{ url_for('index', page=pagination.next_num, query=search_query, category_id=selected_category) if pagination.has_next else '#' }}">
-                Наступна
-            </a>
-        </li>
-    </ul>
-</nav>
-{% endif %}
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link"
+                   href="{{ url_for('index', page=pagination.next_num, query=search_query, category_id=selected_category, sort=current_sort) if pagination.has_next else '#' }}">
+                    Наступна
+                </a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
 
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const contentArea = document.getElementById('main-content-area');
+
+        // Функція для завантаження контенту
+        async function fetchFilteredRecipes(url) {
+            contentArea.style.opacity = '0.5'; // Візуальний ефект завантаження
+
+            try {
+                const response = await fetch(url, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newContent = doc.getElementById('main-content-area');
+
+                if (newContent) {
+                    contentArea.innerHTML = newContent.innerHTML;
+                    window.history.pushState({}, '', url); // Оновлюємо URL в рядку браузера
+                }
+            } catch (error) {
+                console.error('Помилка завантаження:', error);
+            } finally {
+                contentArea.style.opacity = '1';
+            }
+        }
+
+        // Event Listener для сортування
+        document.body.addEventListener('click', function(e) {
+            const sortLink = e.target.closest('.sort-link');
+            if (sortLink) {
+                e.preventDefault();
+                const sortValue = sortLink.getAttribute('data-sort');
+                const url = new URL(window.location.href);
+                url.searchParams.set('sort', sortValue);
+                url.searchParams.set('page', 1); // Скидаємо на першу сторінку при сортуванні
+                fetchFilteredRecipes(url.toString());
+            }
+
+            // Також перехоплюємо кліки по пагінації для "живого" переходу
+            const pageLink = e.target.closest('.page-link');
+            if (pageLink && pageLink.getAttribute('href') !== '#') {
+                e.preventDefault();
+                fetchFilteredRecipes(pageLink.href);
+            }
+        });
+    });
+</script>
 {% endblock %}
