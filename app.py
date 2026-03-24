@@ -30,6 +30,21 @@ admin_password = os.environ.get('ADMIN_PASSWORD')
 db.init_app(app)
 
 
+def get_all_child_categories(category_id):
+    """
+    Рекурсивно збирає ID самої категорії та всіх її підкатегорій.
+    Це дозволяє бачити рецепти з 'М'яса', коли обрана категорія 'Основні страви'.
+    """
+    ids = [category_id]
+    category = db.session.get(Category, category_id)
+
+    if category and category.children:
+        for child in category.children:
+            ids.extend(get_all_child_categories(child.id))
+
+    return ids
+
+
 def setup_database(app):
     with app.app_context():
         db.create_all()
@@ -126,21 +141,6 @@ def inject_global_data():
     ).scalars().all()
 
     return dict(main_categories=main_categories)
-
-
-def get_all_child_categories(category_id):
-    """
-    Рекурсивно збирає ID самої категорії та всіх її підкатегорій.
-    Це дозволяє бачити рецепти з 'М'яса', коли обрана категорія 'Основні страви'.
-    """
-    ids = [category_id]
-    category = db.session.get(Category, category_id)
-
-    if category and category.children:
-        for child in category.children:
-            ids.extend(get_all_child_categories(child.id))
-
-    return ids
 
 
 @app.route('/')
