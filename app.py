@@ -5,6 +5,7 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from sqlalchemy import or_, desc, select
 from models import db, Recipe, Category, Ingredient, RecipeIngredient, InstructionStep, RecipeTip, User
 from forms import RecipeForm
+from import_all import import_everything, create_admin
 from datetime import datetime
 import mimetypes
 import re
@@ -15,14 +16,31 @@ app = Flask(__name__)
 mimetypes.add_type('image/svg+xml', '.svg')
 
 # --- DB initialisation  ---
-app.config['SECRET_KEY'] = os.environ.get('FLASK_KEY')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URI', 'sqlite:///recipes.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.environ.get('SQL_TRACK_MODS', False)
+instance_path = os.path.join(app.root_path, 'instance')
+if not os.path.exists(instance_path):
+    os.makedirs(instance_path)
+
+app.config['SECRET_KEY'] = os.environ.get('FLASK_KEY', 'dev-key-123')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URI', f'sqlite:///{os.path.join(instance_path, "recipes.db")}')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
 
-with app.app_context():
-    db.create_all()
+admin_password = os.environ.get('ADMIN_PASSWORD')
+
+
+db.init_app(app)
+
+def setup_database(app):
+    with app.app_context():
+        db.create_all()
+        if Recipe.query.count() == 0:
+            print("🚀 База порожня. Імпортуємо дані...")
+            import_everything()
+            create_admin(admin_password or 'admin')
+            print("✅ Дані та адмін створені.")
+
+setup_database(app)
 
 
 # ----------------------------------------------------
