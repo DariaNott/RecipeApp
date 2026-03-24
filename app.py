@@ -1,11 +1,9 @@
-from itertools import product
-
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from sqlalchemy import or_, desc, select
 from models import db, Recipe, Category, Ingredient, RecipeIngredient, InstructionStep, RecipeTip, User
 from forms import RecipeForm
-from import_all import import_everything, create_admin
+import importer
 from datetime import datetime
 import mimetypes
 import re
@@ -21,24 +19,26 @@ if not os.path.exists(instance_path):
     os.makedirs(instance_path)
 
 app.config['SECRET_KEY'] = os.environ.get('FLASK_KEY', 'dev-key-123')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URI', f'sqlite:///{os.path.join(instance_path, "recipes.db")}')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URI',
+                                                       f'sqlite:///{os.path.join(instance_path, "recipes.db")}')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
 
 admin_password = os.environ.get('ADMIN_PASSWORD')
 
-
 db.init_app(app)
+
 
 def setup_database(app):
     with app.app_context():
         db.create_all()
         if Recipe.query.count() == 0:
             print("🚀 База порожня. Імпортуємо дані...")
-            import_everything()
-            create_admin(admin_password or 'admin')
+            importer.import_everything()
+            importer.create_admin(admin_password or 'admin')
             print("✅ Дані та адмін створені.")
+
 
 setup_database(app)
 
@@ -128,18 +128,31 @@ def inject_global_data():
     return dict(main_categories=main_categories)
 
 
+def get_all_child_categories(category_id):
+    """
+    Рекурсивно збирає ID самої категорії та всіх її підкатегорій.
+    Це дозволяє бачити рецепти з 'М'яса', коли обрана категорія 'Основні страви'.
+    """
+    ids = [category_id]
+    category = db.session.get(Category, category_id)
+
+    if category and category.children:
+        for child in category.children:
+            ids.extend(get_all_child_categories(child.id))
+
+    return ids
+
+
 @app.route('/')
 def index():
-    # 1. Отримуємо параметри
     page = request.args.get('page', 1, type=int)
-    sort_option = request.args.get('sort', 'newest')  # Перевірте, що тут 'sort'
-    query = request.args.get('query', '')
-    cat_id = request.args.get('category_id', type=int)
+    search_query = request.args.get('query', '').strip()
+    category_id = request.args.get('category_id', type=int)
+    sort_option = request.args.get('sort', 'newest')  # Отримуємо сортування
 
-    # 2. Будуємо запит
     stmt = select(Recipe)
 
-    # 3. Сортування (Цей блок має бути ДО пагінації)
+    # Логіка сортування
     if sort_option == 'name_asc':
         stmt = stmt.order_by(Recipe.title.asc())
     elif sort_option == 'name_desc':
@@ -147,23 +160,32 @@ def index():
     elif sort_option == 'oldest':
         stmt = stmt.order_by(Recipe.created_date.asc())
     else:
-        stmt = stmt.order_by(Recipe.created_date.desc())
+        stmt = stmt.order_by(desc(Recipe.created_date))
 
-    # 4. Фільтрація
-    if query:
-        stmt = stmt.where(Recipe.title.ilike(f"%{query}%"))
-    if cat_id:
-        stmt = stmt.where(Recipe.categories.any(Category.id == cat_id))
+    # Фільтри
+    if category_id:
+        category_ids = get_all_child_categories(category_id)
+        stmt = stmt.where(Recipe.categories.any(Category.id.in_(category_ids)))
 
-    # 5. Пагінація
-    pagination = db.paginate(stmt, page=page, per_page=9)
+    if search_query:
+        stmt = stmt.where(Recipe.title.ilike(f"%{search_query}%"))
 
-    return render_template('index.html',
-                           all_recipes=pagination.items,
-                           pagination=pagination,
-                           current_sort=sort_option,  # Обов'язково передаємо назад!
-                           selected_category=cat_id,
-                           search_query=query)
+    pagination = db.paginate(stmt, page=page, per_page=9, error_out=False)
+
+    # Отримуємо всі категорії для меню
+    all_categories = db.session.execute(select(Category)).scalars().all()
+    main_categories = [c for c in all_categories if c.parent_id is None]
+
+    return render_template(
+        'index.html',
+        all_recipes=pagination.items,
+        pagination=pagination,
+        search_query=search_query,
+        selected_category=category_id,
+        current_sort=sort_option,
+        main_categories=main_categories,
+        categories=all_categories
+    )
 
 
 @app.route('/recipe/<int:recipe_id>')
@@ -468,4 +490,4 @@ def delete_recipe(recipe_id):
 if __name__ == '__main__':
     app.run(debug=False)
 
-    #TODO: додати  [[Соус Цезар]] в базу
+    # TODO: додати  [[Соус Цезар]] в базу
