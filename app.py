@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from sqlalchemy import or_, desc, select
+from sqlalchemy import or_, desc, select, func
 from models import db, Recipe, Category, Ingredient, RecipeIngredient, InstructionStep, RecipeTip, User
 from forms import RecipeForm
 import importer
@@ -168,7 +168,8 @@ def index():
         stmt = stmt.where(Recipe.categories.any(Category.id.in_(category_ids)))
 
     if search_query:
-        stmt = stmt.where(Recipe.title.ilike(f"%{search_query}%"))
+        # local search is till case sensitive due tu UA symbols
+        stmt = stmt.where(Recipe.title.ilike(f"%{search_query}%").collate('NOCASE'))
 
     pagination = db.paginate(stmt, page=page, per_page=9, error_out=False)
 

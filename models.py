@@ -70,7 +70,7 @@ class Recipe(db.Model):
     __tablename__ = 'recipe'
 
     id: Mapped[int] = mapped_column(db.Integer, primary_key=True)
-    title: Mapped[str] = mapped_column(db.String(255))
+    title: Mapped[str] = mapped_column(db.String(255, collation='NOCASE'), nullable=False)
     description: Mapped[str] = mapped_column(db.Text)
     tips: Mapped[List["RecipeTip"]] = relationship(back_populates="recipe", cascade="all, delete-orphan")
     created_date: Mapped[DateTime] = mapped_column(
