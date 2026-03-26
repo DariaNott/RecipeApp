@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from sqlalchemy import or_, desc, select, func
+from sqlalchemy import or_, desc, select, event, func
 from models import db, Recipe, Category, Ingredient, RecipeIngredient, InstructionStep, RecipeTip, User
 from forms import RecipeForm
 import importer
@@ -47,6 +47,10 @@ def get_all_child_categories(category_id):
 
 def setup_database(app):
     with app.app_context():
+        @event.listens_for(db.engine, "connect")
+        def receive_connect(dbapi_connection, connection_record):
+            dbapi_connection.create_function("py_lower", 1, lambda s: s.lower() if s else s)
+
         db.create_all()
         if Recipe.query.count() == 0:
             print("🚀 База порожня. Імпортуємо дані...")
@@ -56,7 +60,6 @@ def setup_database(app):
 
 
 setup_database(app)
-
 
 # ----------------------------------------------------
 # Custom filters Jinja2
@@ -168,8 +171,8 @@ def index():
         stmt = stmt.where(Recipe.categories.any(Category.id.in_(category_ids)))
 
     if search_query:
-        # local search is till case sensitive due tu UA symbols
-        stmt = stmt.where(Recipe.title.ilike(f"%{search_query}%").collate('NOCASE'))
+        search_term = f"%{search_query.lower()}%"
+        stmt = stmt.where(func.py_lower(Recipe.title).like(search_term))
 
     pagination = db.paginate(stmt, page=page, per_page=9, error_out=False)
 
