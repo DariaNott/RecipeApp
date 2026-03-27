@@ -1,15 +1,13 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from sqlalchemy import or_, desc, select, event, func
+from flask_login import LoginManager, login_user, login_required, logout_user
+from sqlalchemy import desc, select, event, func
 from models import db, Recipe, Category, Ingredient, RecipeIngredient, InstructionStep, RecipeTip, User
-from forms import RecipeForm
 import importer
 from datetime import datetime
 import mimetypes
 import re
 import os
 
-# TODO: перейти на веб-сервер Nginx + Gunicorn перед викатом в прод
 app = Flask(__name__)
 mimetypes.add_type('image/svg+xml', '.svg')
 
@@ -32,8 +30,7 @@ db.init_app(app)
 
 def get_all_child_categories(category_id):
     """
-    Рекурсивно збирає ID самої категорії та всіх її підкатегорій.
-    Це дозволяє бачити рецепти з 'М'яса', коли обрана категорія 'Основні страви'.
+    Gather all child categories of a given category.
     """
     ids = [category_id]
     category = db.session.get(Category, category_id)
@@ -61,6 +58,7 @@ def setup_database(app):
 
 setup_database(app)
 
+
 # ----------------------------------------------------
 # Custom filters Jinja2
 # ----------------------------------------------------
@@ -75,10 +73,10 @@ def format_datetime(value, format="%d.%m.%Y"):
 @app.template_filter('trim_zeros')
 def format_amount(value):
     """
-    Форматує числову кількість:
-    1. Перетворює поширені дроби (0.5, 0.25) на символи Unicode (½, ¼).
-    2. Якщо це ціле число (наприклад, 3.0), виводить його як int (3).
-    3. В іншому випадку виводить число з плаваючою комою (наприклад, 1.33).
+    Formating numbers:
+    1. Converts floats (0.5, 0.25) to Unicode (½, ¼).
+    2. Converts float that ends with .0 to integer.
+    3. Leaves uncovered cases as they are.
     """
     if value is None:
         return ""
@@ -87,8 +85,10 @@ def format_amount(value):
         0.25: '¼',
         0.5: '½',
         0.75: '¾',
+        0.3: '⅓',
         1 / 3: '⅓',
-        2 / 3: '⅔',
+        0.6: '⅔',
+        2 / 3: '⅔'
     }
 
     rounded_value = round(value, 3)
@@ -114,12 +114,10 @@ def format_amount(value):
 @app.template_filter('link_recipes')
 def link_recipes(text):
     if not text: return ""
-    # Шукаємо текст у подвійних дужках [[Назва]]
     pattern = r'\[\[(.*?)\]\]'
 
     def replace_with_link(match):
         recipe_title = match.group(1)
-        # Шукаємо рецепт у базі за назвою
         target_recipe = db.session.execute(select(Recipe).where(Recipe.title == recipe_title)).scalar_one_or_none()
         if target_recipe:
             url = url_for('recipe', recipe_id=target_recipe.id)
@@ -136,9 +134,8 @@ def link_recipes(text):
 
 @app.context_processor
 def inject_global_data():
-    """Передає список головних категорій у кожен шаблон."""
+    """Passing main categories list to drafts."""
 
-    # Вибираємо лише головні категорії (ті, що не мають parent_id)
     main_categories = db.session.execute(
         select(Category).where(Category.parent_id == None).order_by(Category.title)
     ).scalars().all()
@@ -151,11 +148,11 @@ def index():
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('query', '').strip()
     category_id = request.args.get('category_id', type=int)
-    sort_option = request.args.get('sort', 'newest')  # Отримуємо сортування
+    sort_option = request.args.get('sort', 'newest')
 
     stmt = select(Recipe)
 
-    # Логіка сортування
+    # Sort
     if sort_option == 'name_asc':
         stmt = stmt.order_by(Recipe.title.asc())
     elif sort_option == 'name_desc':
@@ -165,7 +162,7 @@ def index():
     else:
         stmt = stmt.order_by(desc(Recipe.created_date))
 
-    # Фільтри
+    # Filters
     if category_id:
         category_ids = get_all_child_categories(category_id)
         stmt = stmt.where(Recipe.categories.any(Category.id.in_(category_ids)))
@@ -176,7 +173,6 @@ def index():
 
     pagination = db.paginate(stmt, page=page, per_page=9, error_out=False)
 
-    # Отримуємо всі категорії для меню
     all_categories = db.session.execute(select(Category)).scalars().all()
     main_categories = [c for c in all_categories if c.parent_id is None]
 
@@ -200,7 +196,7 @@ def recipe(recipe_id):
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'  # Куди перенаправляти, якщо не залогінений
+login_manager.login_view = 'login'
 
 
 @login_manager.user_loader
@@ -293,7 +289,7 @@ def add_recipe():
             amounts = request.form.getlist('amount')
             measures = request.form.getlist('measure')
             ingredient_titles_input = request.form.getlist('ingredient_title')
-            ingredient_titles_genitive = request.form.getlist('ingredient_title_genitive')  # <--- НОВЕ ПОЛЕ
+            ingredient_titles_genitive = request.form.getlist('ingredient_title_genitive')
 
             for i in range(len(ingredient_titles_input)):
                 title_input = ingredient_titles_input[i].strip()
@@ -313,12 +309,10 @@ def add_recipe():
                 if existing_ingredient is None:
                     existing_ingredient = Ingredient(
                         title=title_input,
-                        title_genitive=title_genitive_input or title_input  # Зберігаємо Р.в.
+                        title_genitive=title_genitive_input or title_input
                     )
                     db.session.add(existing_ingredient)
                     db.session.flush()
-
-                    # TODO: Якщо інгредієнт вже існує, але користувач ввів Р.в. для нього, ми поки що його не оновлюємо. можна додати пізніше
 
                 recipe_ingredient = RecipeIngredient(
                     recipe_id=new_recipe.id,
@@ -474,7 +468,7 @@ def edit_recipe(recipe_id):
             return redirect(url_for('edit_recipe', recipe_id=recipe.id))
 
     return render_template(
-        'edit_recipe.html',  # Або add_recipe.html, якщо ви зробите його універсальним
+        'edit_recipe.html',
         recipe=recipe,
         categories=all_categories,
         ingredient_titles_json=ingredient_titles
@@ -493,5 +487,3 @@ def delete_recipe(recipe_id):
 
 if __name__ == '__main__':
     app.run(debug=False)
-
-    # TODO: додати  [[Соус Цезар]] в базу
