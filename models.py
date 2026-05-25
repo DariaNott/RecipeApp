@@ -1,143 +1,94 @@
-from sqlalchemy import Table, Column, Integer, String, ForeignKey, Float, DateTime, func, select
-from sqlalchemy.orm import Mapped, relationship, mapped_column
 from typing import List, Optional
-from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.exc import IntegrityError
-import logging
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-db = SQLAlchemy()
-
-recipe_category_association = Table(
-    'recipe_category_association',
-    db.metadata,
-    Column('recipe_id', ForeignKey('recipe.id'), primary_key=True),
-    Column('category_id', ForeignKey('category.id'), primary_key=True)
-)
-
-class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
-
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+from sqlalchemy import String, Integer, ForeignKey, Text
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from database import Base
 
 
-class RecipeIngredient(db.Model):
-    __tablename__ = 'recipe_ingredient'
+class RecipeCategory(Base):
+    __tablename__ = "recipe_categories"
 
-    recipe_id: Mapped[int] = mapped_column(ForeignKey('recipe.id'), primary_key=True)
-    ingredient_id: Mapped[int] = mapped_column(ForeignKey('ingredient.id'), primary_key=True)
-
-    amount: Mapped[Optional[float]] = mapped_column(db.Float, nullable=True)
-    measure: Mapped[Optional[str]] = mapped_column(db.String(20), nullable=True)
-
-    recipe: Mapped['Recipe'] = relationship(back_populates='recipe_ingredients')
-    ingredient: Mapped['Ingredient'] = relationship(back_populates='recipe_ingredients')
-
-    def __repr__(self):
-        return f"<RecipeIngredient ingredient_id={self.ingredient_id} amount={self.amount} measure='{self.measure}'>"
+    recipe_id: Mapped[int] = mapped_column(ForeignKey("recipes.id", ondelete="CASCADE"), primary_key=True)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id", ondelete="CASCADE"), primary_key=True)
 
 
-class InstructionStep(db.Model):
-    __tablename__ = 'instruction_step'
-
-    id: Mapped[int] = mapped_column(db.Integer, primary_key=True)
-    recipe_id: Mapped[int] = mapped_column(ForeignKey('recipe.id'))
-    description: Mapped[str] = mapped_column(db.Text)
-    step_order: Mapped[int] = mapped_column(db.Integer)
-    recipe: Mapped['Recipe'] = relationship(back_populates='instructions')
-
-    def __repr__(self):
-        return f"<InstructionStep order={self.step_order} recipe_id={self.recipe_id}>"
-
-
-class RecipeTip(db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
-    text: Mapped[str] = mapped_column(db.Text, nullable=False)
-    recipe_id: Mapped[int] = mapped_column(db.ForeignKey("recipe.id"))
-
-    recipe: Mapped["Recipe"] = relationship(back_populates="tips")
-
-class Recipe(db.Model):
-    __tablename__ = 'recipe'
-
-    id: Mapped[int] = mapped_column(db.Integer, primary_key=True)
-    title: Mapped[str] = mapped_column(db.String(255, collation='NOCASE'), nullable=False)
-    description: Mapped[str] = mapped_column(db.Text)
-    tips: Mapped[List["RecipeTip"]] = relationship(back_populates="recipe", cascade="all, delete-orphan")
-    created_date: Mapped[DateTime] = mapped_column(
-        db.DateTime,
-        default=db.func.now()
-    )
-
-    instructions: Mapped[List[InstructionStep]] = relationship(
-        back_populates='recipe',
-        order_by=InstructionStep.step_order,
-        cascade='all, delete-orphan'
-    )
-
-    recipe_ingredients: Mapped[List[RecipeIngredient]] = relationship(
-        back_populates='recipe', cascade='all, delete-orphan'
-    )
-
-    categories: Mapped[List['Category']] = relationship(
-        secondary=recipe_category_association,
-        back_populates='recipes'
-    )
-
-    def __repr__(self):
-        return f"<Recipe title='{self.title}'>"
-
-
-class Ingredient(db.Model):
-    __tablename__ = 'ingredient'
+class Category(Base):
+    __tablename__ = "categories"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(unique=True)  # Унікальна назва
-    title_genitive = db.Column(db.String(120), nullable=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("categories.id", ondelete="SET NULL"))
 
-    recipe_ingredients: Mapped[List[RecipeIngredient]] = relationship(
-        back_populates='ingredient', cascade='all, delete-orphan'
+    parent: Mapped[Optional["Category"]] = relationship("Category", remote_side=[id], back_populates="children")
+    children: Mapped[List["Category"]] = relationship("Category", back_populates="parent")
+
+    recipes: Mapped[List["Recipe"]] = relationship(
+        "Recipe", secondary="recipe_categories", back_populates="categories"
     )
 
-    def __repr__(self):
-        return f"<Ingredient title='{self.title}'>"
 
-
-class Category(db.Model):
-    __tablename__ = 'category'
+class Recipe(Base):
+    __tablename__ = "recipes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(unique=True)
+    title: Mapped[str] = mapped_column(String(255, collation="NOCASE"), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
 
-    parent_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey('category.id'),
-        nullable=True  # Дозволяємо бути NULL для головних категорій
+    categories: Mapped[List["Category"]] = relationship(
+        "Category", secondary="recipe_categories", back_populates="recipes"
     )
 
-    parent: Mapped[Optional['Category']] = relationship(
-        remote_side=[id],  # Вказуємо, що id є "віддаленою" стороною
-        back_populates='children'
+    ingredients: Mapped[List["RecipeIngredient"]] = relationship(
+        "RecipeIngredient", back_populates="recipe", cascade="all, delete-orphan"
     )
 
-    children: Mapped[List['Category']] = relationship(
-        back_populates='parent',
-        cascade='all, delete-orphan',
-        order_by='Category.title'  # Сортуємо для порядку
+    instructions: Mapped[List["RecipeInstruction"]] = relationship(
+        "RecipeInstruction", back_populates="recipe", cascade="all, delete-orphan"
     )
 
-    recipes: Mapped[List['Recipe']] = relationship(
-        secondary=recipe_category_association,
-        back_populates='categories'
+    tips: Mapped[List["RecipeTip"]] = relationship(
+        "RecipeTip", back_populates="recipe", cascade="all, delete-orphan"
     )
 
-    def __repr__(self):
-        return f"<Category title='{self.title}' parent_id={self.parent_id}>"
+
+class RecipeTip(Base):
+    __tablename__ = "recipe_tips"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    recipe_id: Mapped[int] = mapped_column(ForeignKey("recipes.id", ondelete="CASCADE"))
+
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+
+    recipe: Mapped["Recipe"] = relationship("Recipe", back_populates="tips")
+
+
+class RecipeIngredient(Base):
+    __tablename__ = "recipe_ingredients"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    recipe_id: Mapped[int] = mapped_column(ForeignKey("recipes.id", ondelete="CASCADE"))
+
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    amount: Mapped[str] = mapped_column(String(50), nullable=True)
+
+    recipe: Mapped["Recipe"] = relationship("Recipe", back_populates="ingredients")
+
+
+class RecipeInstruction(Base):
+    __tablename__ = "recipe_instructions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    recipe_id: Mapped[int] = mapped_column(ForeignKey("recipes.id", ondelete="CASCADE"))
+
+    step: Mapped[int] = mapped_column(Integer, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+
+    recipe: Mapped["Recipe"] = relationship("Recipe", back_populates="instructions")
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(50), nullable=False)

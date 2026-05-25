@@ -5,26 +5,11 @@
 {% block content %}
 
 <div class="row align-items-start">
-    {% if current_user.is_authenticated %}
-    <div class="d-flex justify-content-end mb-3 gap-2 mt-2">
-        <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="btn btn-outline-primary btn-sm px-3">
-            <img src="{{ url_for('static', filename='images/pencil.svg') }}" alt="edit" height="14" class="me-1">
-        </a>
-        <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST"
-              onsubmit="return confirm('Ви впевнені, що хочете видалити цей рецепт? Цю дію неможливо скасувати.');">
-            <button type="submit" class="btn btn-outline-danger btn-sm px-3">
-                <img src="{{ url_for('static', filename='images/trash3-fill.svg') }}" alt="delete" height="14"
-                     class="me-1">
-            </button>
-        </form>
-    </div>
-    {% endif %}
     <div class="col-12">
         <div class="mb-3 mb-lg-0 text-center text-lg-start">
             <h1 id="title" class="display-3 lh-1 mb-2">{{recipe.title}}</h1>
-            <p id="title-desc" class="lead fw-normal text-muted mb-3">{{recipe.description | link_recipes | safe }}</p>
-            <p class="text-end text-muted small">Створено: {{ recipe.created_date | datetime }}</p>
-
+            <p id="title-desc" class="lead fw-normal text-muted mb-3">{{ recipe.description |
+                link_recipes | safe if recipe.description else '' }}</p>
         </div>
     </div>
 </div>
@@ -34,9 +19,8 @@
         <h5 class="text-muted">Категорії:</h5>
         {% if recipe.categories %}
         {% for category in recipe.categories %}
-        <a href="/?category_id={{ category.id }}" class="badge bg-secondary text-decoration-none">
-            {{ category.title }}
-        </a>
+        <a href="{{ url_for('index') }}?category_id={{ category.id }}" class="badge bg-secondary text-decoration-none">
+            {{ category.name }} </a>
         {% endfor %}
         {% else %}
         <span class="badge bg-warning text-dark">Категорії не вказано.</span>
@@ -46,40 +30,27 @@
     {% if recipe.tips %}
     <div id="tips" class="col-lg-12">
         <h4 class="h4 border-bottom pb-2">
-            <img src="{{ url_for('static', filename='images/lightbulb.svg') }}" alt="lightbulb" height="20">
+            <img src="/static/images/lightbulb.svg" alt="book" height="20">
             Поради:
         </h4>
         <ul>
             {% for tip in recipe.tips %}
-            <li>{{ tip.text  | link_recipes | safe }}</li>
+            <li>{{ tip.text | link_recipes | safe }}</li>
             {% endfor %}
         </ul>
     </div>
     {% endif %}
+
     <div id="ingredients" class="col-lg-4">
         <h3 class="h4 border-bottom pb-2">
-            <img src="{{ url_for('static', filename='images/cart4.svg') }}" alt="cart" height="20">
+            <img src="/static/images/cart4.svg" alt="book" height="20">
             Інгредієнти:
         </h3>
-        {% if recipe.recipe_ingredients %}
+        {% if recipe.ingredients %}
         <ul class="list-unstyled">
-            {% for ri in recipe.recipe_ingredients %}
+            {% for ri in recipe.ingredients %}
             <li>
-                {# ri.amount та ri.measure можуть бути None #}
-
-                {% if ri.amount and ri.measure %}
-                {{ ri.amount | round(2) | trim_zeros }} {{ ri.measure }}
-                {{ ri.ingredient.title_genitive or ri.ingredient.title }}
-
-                {% elif ri.amount %}
-                {# Сценарій 2: Кількість Є, Міра ВІДСУТНЯ (3 штуки часника) #}
-                {{ ri.amount | round(2) | trim_zeros }}
-                {{ ri.ingredient.title_genitive or ri.ingredient.title }}
-
-                {% else %}
-                {{ ri.ingredient.title }}
-                {% endif %}
-
+                {% if ri.amount %} {{ ri.amount }}{% endif %} {{ ri.name }}
             </li>
             {% endfor %}
         </ul>
@@ -87,15 +58,16 @@
         <p class="text-danger">На жаль, список інгредієнтів відсутній.</p>
         {% endif %}
     </div>
+
     <div id="cooking" class="col-lg-8">
         <h3 class="h4 border-bottom pb-2">
-            <img src="{{ url_for('static', filename='images/fork-knife.svg') }}" alt="fork-knife" height="20">
+            <img src="/static/images/fork-knife.svg" alt="book" height="20">
             Приготування:
         </h3>
         {% if recipe.instructions %}
         <ol>
             {% for step in recipe.instructions %}
-            <li>{{step.description | link_recipes | safe }}</li>
+            {{ step.text | link_recipes | safe }}
             {% endfor %}
         </ol>
         {% else %}

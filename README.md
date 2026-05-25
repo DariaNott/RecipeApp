@@ -61,7 +61,12 @@ export FLASK_KEY='your-secret-key'
 export ADMIN_PASSWORD='your-admin-password'
 ```
 
-4. Run the application:
+4. Initialize the database with seed data:
+```
+python import_all.py
+```
+
+5. Run the application:
 ``` 
 flask run
 ```
