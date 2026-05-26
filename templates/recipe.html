@@ -67,7 +67,7 @@
         {% if recipe.instructions %}
         <ol>
             {% for step in recipe.instructions %}
-            {{ step.text | link_recipes | safe }}
+            <li>{{ step.text | link_recipes | safe }}</li>
             {% endfor %}
         </ol>
         {% else %}

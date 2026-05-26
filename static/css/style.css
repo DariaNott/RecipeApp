@@ -4,13 +4,30 @@ ul {
   margin-top: 10px;
   padding-bottom: 10px;
 }
+#ingredients ul.list-unstyled li {
+  font-size: 1.05rem;
+}
 ol {
   list-style-type: decimal;
   list-style-position: inside;
   margin-top: 10px;
   padding-bottom: 10px;
-
 }
+#cooking ol {
+  list-style-type: decimal;
+  list-style-position: outside;
+  margin-top: 15px;
+  margin-bottom: 20px;
+  padding-left: 25px; /* Тепер без ком, чисто через пробіл */
+}
+
+#cooking ol li {
+  padding-left: 2px;
+  margin-bottom: 4px;
+  line-height: 1.3;
+  font-size: 1.05rem;
+}
+
 img {
   max-width: 100%; /* Makes image responsive */
   height: auto; /* Maintains aspect ratio */
