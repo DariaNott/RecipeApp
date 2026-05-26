@@ -76,8 +76,11 @@ async def index(
     await refresh_recipe_links_map(db)
 
     # Отримання категорій для випадаючого меню навігації
-    cat_result = await db.execute(select(models.Category))
-    categories = cat_result.scalars().all()
+    cat_result = await db.execute(
+        select(models.Category)
+        .options(selectinload(models.Category.children))
+    )
+    categories = cat_result.unique().scalars().all()
 
     # Базовий запит для підрахунку та вибірки рецептів
     stmt = select(models.Recipe)
@@ -144,8 +147,9 @@ async def index(
     # 6. Перевірка на AJAX-запит для динамічного оновлення контенту (без перезавантаження сторінки)
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return templates.TemplateResponse(
-            "recipes_list.html",
-            {
+            request=request,
+            name="recipes_list.html",
+            context={
                 "request": request,
                 "recipes": recipes_page,
                 "pagination": pagination,
@@ -157,13 +161,13 @@ async def index(
 
     # Звичайне завантаження сторінки
     return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
+        request=request,
+        name="index.html",
+        context={
             "recipes": recipes_page,
             "categories": categories,
             "selected_category": category_id,
-            "search_query": search_query if search_query else "",
+            "search_query": search_query,
             "current_sort": sort,
             "pagination": pagination
         }
@@ -179,8 +183,11 @@ async def recipe_detail(request: Request, recipe_id: int, db: AsyncSession = Dep
     await refresh_recipe_links_map(db)
 
     # Отримуємо всі категорії (потрібно для головного меню навігації в шапці base.html)
-    cat_result = await db.execute(select(models.Category))
-    categories = cat_result.scalars().all()
+    cat_result = await db.execute(
+        select(models.Category)
+        .options(selectinload(models.Category.children))
+    )
+    categories = cat_result.unique().scalars().all()
 
     # Запит рецепта з жадібним завантаженням (Eager Loading) усіх зв'язаних даних
     stmt = (
@@ -202,8 +209,9 @@ async def recipe_detail(request: Request, recipe_id: int, db: AsyncSession = Dep
 
     # Повертаємо зрендерований шаблон сторінки рецепта
     return templates.TemplateResponse(
-        "recipe.html",
-        {
+        request=request,
+        name="recipe.html",
+        context={
             "request": request,
             "recipe": recipe,
             "categories": categories,

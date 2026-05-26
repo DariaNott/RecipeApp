@@ -25,10 +25,12 @@
         {% endfor %}
     </div>
 
+    {# БЛОК ПАГІНАЦІЇ #}
     {% if pagination.total_pages > 1 %}
     <nav aria-label="Pagination" class="mt-5">
         <ul class="pagination justify-content-center">
 
+            {# КНОПКА "ПОПЕРЕДНЯ" #}
             <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
                 {% if pagination.has_prev %}
                     <a class="page-link" href="{{ url_for('index') }}?page={{ pagination.page - 1 }}&sort={{ current_sort }}{% if search_query %}&search_query={{ search_query }}{% endif %}{% if selected_category %}&category_id={{ selected_category }}{% endif %}">Попередня</a>
@@ -37,12 +39,14 @@
                 {% endif %}
             </li>
 
+            {# ЦИКЛ ПО СТОРІНКАХ #}
             {% for p in range(1, pagination.total_pages + 1) %}
                 <li class="page-item {% if p == pagination.page %}active{% endif %}">
                     <a class="page-link" href="{{ url_for('index') }}?page={{ p }}&sort={{ current_sort }}{% if search_query %}&search_query={{ search_query }}{% endif %}{% if selected_category %}&category_id={{ selected_category }}{% endif %}">{{ p }}</a>
                 </li>
             {% endfor %}
 
+            {# КНОПКА "НАСТУПНА" #}
             <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
                 {% if pagination.has_next %}
                     <a class="page-link" href="{{ url_for('index') }}?page={{ pagination.page + 1 }}&sort={{ current_sort }}{% if search_query %}&search_query={{ search_query }}{% endif %}{% if selected_category %}&category_id={{ selected_category }}{% endif %}">Наступна</a>
