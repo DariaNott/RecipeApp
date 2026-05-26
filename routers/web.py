@@ -148,7 +148,7 @@ async def index(
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return templates.TemplateResponse(
             request=request,
-            name="recipes_list.html",
+            name="partials/recipes_list.html",
             context={
                 "request": request,
                 "recipes": recipes_page,
@@ -207,7 +207,6 @@ async def recipe_detail(request: Request, recipe_id: int, db: AsyncSession = Dep
     if not recipe:
         raise HTTPException(status_code=404, detail="Рецепт не знайдено")
 
-    # Повертаємо зрендерований шаблон сторінки рецепта
     return templates.TemplateResponse(
         request=request,
         name="recipe.html",
