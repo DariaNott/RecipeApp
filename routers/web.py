@@ -14,7 +14,7 @@ router = APIRouter(tags=["Web UI"])
 templates = Jinja2Templates(directory="templates")
 
 
-# --- КАСТОМНІ ФІЛЬТРИ JINJA2 ---
+# --- custom JINJA2 filters ---
 def filter_datetime(value):
     if value is None:
         return "Не вказано"
@@ -25,20 +25,18 @@ def filter_datetime(value):
 
 
 def filter_link_recipes(value):
-    """Шукає [[Назва Рецепту]] та перетворює на HTML посилання"""
+    """Search [[Recipe Title]] and convert to HTML link"""
     if value is None:
         return ""
 
     def replace_link(match):
-        recipe_title = match.group(1)  # Текст між [[ ]]
+        recipe_title = match.group(1)
         clean_title = recipe_title.lower().strip()
 
-        # Шукаємо ID рецепта в нашій глобальній карті
         recipe_id = RECIPE_LINKS_MAP.get(clean_title)
         if recipe_id:
             return f'<a href="/recipe/{recipe_id}" class="recipe-wiki-link">{recipe_title}</a>'
 
-        # Якщо такого рецепта немає, просто прибираємо дужки
         return recipe_title
 
     return re.sub(r'\[\[(.*?)\]\]', replace_link, str(value))
@@ -48,7 +46,6 @@ RECIPE_LINKS_MAP = {}
 
 
 async def refresh_recipe_links_map(db: AsyncSession):
-    """Оновлює глобальну карту назв рецептів та їх ID"""
     global RECIPE_LINKS_MAP
     try:
         result = await db.execute(select(models.Recipe.id, models.Recipe.title))
@@ -58,7 +55,6 @@ async def refresh_recipe_links_map(db: AsyncSession):
         print(f"⚠️ Не вдалося оновити карту посилань рецептів: {e}")
 
 
-# 🎯 2. РЕЄСТРАЦІЯ ФІЛЬТРІВ У JINJA2
 templates.env.filters["datetime"] = filter_datetime
 templates.env.filters["link_recipes"] = filter_link_recipes
 
@@ -72,43 +68,34 @@ async def index(
         sort: str = "newest",
         db: AsyncSession = Depends(get_db)
 ):
-    # Оновлюємо карту вікі-посилань для автозв'язування рецептів у тексті
     await refresh_recipe_links_map(db)
 
-    # Отримання категорій для випадаючого меню навігації
     cat_result = await db.execute(
         select(models.Category)
         .options(selectinload(models.Category.children))
     )
     categories = cat_result.unique().scalars().all()
 
-    # Базовий запит для підрахунку та вибірки рецептів
     stmt = select(models.Recipe)
 
-    # 1. Фільтрація за пошуковим запитом (якщо передано)
     if search_query and search_query.strip():
         q = f"%{search_query.strip()}%"
         stmt = stmt.where(
             models.Recipe.title.ilike(q) | models.Recipe.description.ilike(q)
         )
 
-    # 2. Фільтрація за категорією (враховуючи підкатегорії)
     if category_id:
-        # Шукаємо всі підкатегорії, де parent_id дорівнює обраному category_id
         sub_cats_res = await db.execute(
             select(models.Category.id).where(models.Category.parent_id == category_id)
         )
         sub_cat_ids = sub_cats_res.scalars().all()
 
-        # Список усіх ID категорій, які підходять (батьківська + усі її діти)
         target_category_ids = [category_id] + list(sub_cat_ids)
 
-        # Фільтруємо рецепти, які містять хоча б одну з цих категорій
         stmt = stmt.where(
             models.Recipe.categories.any(models.Category.id.in_(target_category_ids))
         )
 
-    # 3. Сортування рецептів
     if sort == "name_asc":
         stmt = stmt.order_by(asc(models.Recipe.title))
     elif sort == "name_desc":
@@ -118,24 +105,19 @@ async def index(
     else:  # newest
         stmt = stmt.order_by(desc(models.Recipe.id))
 
-    # 4. Підрахунок загальної кількості знайдених рецептів для пагінації
     count_stmt = select(func.count()).select_from(stmt.subquery())
     count_result = await db.execute(count_stmt)
     total_recipes = count_result.scalar() or 0
 
-    # 5. Налаштування лімітів сторінки (пагінація)
     limit = 6
     offset = (page - 1) * limit
     stmt = stmt.offset(offset).limit(limit)
 
-    # Виконуємо фінальний запит із завантаженням рецептів сторінки
     recipes_result = await db.execute(stmt)
     recipes_page = recipes_result.scalars().all()
 
-    # Розрахунок кількості сторінок
     total_pages = math.ceil(total_recipes / limit) or 1
 
-    # Словник пагінації, адаптований під ваш шаблон index.html та recipes_list.html
     pagination = {
         "total": total_recipes,
         "page": page,
@@ -144,7 +126,6 @@ async def index(
         "has_prev": page > 1
     }
 
-    # 6. Перевірка на AJAX-запит для динамічного оновлення контенту (без перезавантаження сторінки)
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return templates.TemplateResponse(
             request=request,
@@ -159,7 +140,6 @@ async def index(
             }
         )
 
-    # Звичайне завантаження сторінки
     return templates.TemplateResponse(
         request=request,
         name="index.html",
@@ -174,22 +154,16 @@ async def index(
     )
 
 
-# ==========================================
-# 2. СТОРІНКА РЕЦЕПТА (url_for('recipe_detail'))
-# ==========================================
 @router.get("/recipe/{recipe_id}")
 async def recipe_detail(request: Request, recipe_id: int, db: AsyncSession = Depends(get_db)):
-    # Оновлюємо глобальну карту посилань перед рендерингом сторінки
     await refresh_recipe_links_map(db)
 
-    # Отримуємо всі категорії (потрібно для головного меню навігації в шапці base.html)
     cat_result = await db.execute(
         select(models.Category)
         .options(selectinload(models.Category.children))
     )
     categories = cat_result.unique().scalars().all()
 
-    # Запит рецепта з жадібним завантаженням (Eager Loading) усіх зв'язаних даних
     stmt = (
         select(models.Recipe)
         .where(models.Recipe.id == recipe_id)
@@ -203,7 +177,6 @@ async def recipe_detail(request: Request, recipe_id: int, db: AsyncSession = Dep
     result = await db.execute(stmt)
     recipe = result.unique().scalar_one_or_none()
 
-    # Якщо рецепт із таким ID не знайдено в базі — повертаємо помилку 404
     if not recipe:
         raise HTTPException(status_code=404, detail="Рецепт не знайдено")
 

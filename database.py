@@ -15,7 +15,6 @@ if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
 else:
     engine = create_async_engine(SQLALCHEMY_DATABASE_URL)
 
-# Створюємо фабрику асинхронних сесій
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
@@ -27,7 +26,6 @@ AsyncSessionLocal = async_sessionmaker(
 Base = declarative_base()
 
 
-# Cyrillic Fix
 @event.listens_for(engine.sync_engine, "connect")
 def setup_sqlite_functions(dbapi_connection, connection_record):
     if hasattr(dbapi_connection, "create_function"):
