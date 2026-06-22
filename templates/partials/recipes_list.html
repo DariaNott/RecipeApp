@@ -1,0 +1,61 @@
+<div id="main-content-area">
+    <div class="row row-cols-1 row-cols-lg-3 g-4">
+        {% for recipe in recipes %}
+        <div class="col">
+            <div id="feed-item-{{recipe.id}}" class="recipe-preview card h-100 shadow-sm p-3">
+                <h3 class="fs-4 card-title">{{ recipe.title }}</h3>
+                <p class="card-text text-muted">
+                    {{ recipe.description | truncate(120) if recipe.description else '' }}
+                </p>
+                <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-end">
+                    <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="icon-link text-decoration-none">
+                        Читати повністю
+                        <img src="/static/images/book.svg" alt="book" height="20">
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                За вашим запитом нічого не знайдено.
+                <a href="{{ url_for('index') }}" class="alert-link">Повернутися до всіх рецептів.</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {# БЛОК ПАГІНАЦІЇ #}
+    {% if pagination.total_pages > 1 %}
+    <nav aria-label="Pagination" class="mt-5">
+        <ul class="pagination justify-content-center">
+
+            {# КНОПКА "ПОПЕРЕДНЯ" #}
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                {% if pagination.has_prev %}
+                    <a class="page-link" href="{{ url_for('index') }}?page={{ pagination.page - 1 }}&sort={{ current_sort }}{% if search_query %}&search_query={{ search_query }}{% endif %}{% if selected_category %}&category_id={{ selected_category }}{% endif %}">Попередня</a>
+                {% else %}
+                    <a class="page-link" href="#">Попередня</a>
+                {% endif %}
+            </li>
+
+            {# ЦИКЛ ПО СТОРІНКАХ #}
+            {% for p in range(1, pagination.total_pages + 1) %}
+                <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('index') }}?page={{ p }}&sort={{ current_sort }}{% if search_query %}&search_query={{ search_query }}{% endif %}{% if selected_category %}&category_id={{ selected_category }}{% endif %}">{{ p }}</a>
+                </li>
+            {% endfor %}
+
+            {# КНОПКА "НАСТУПНА" #}
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                {% if pagination.has_next %}
+                    <a class="page-link" href="{{ url_for('index') }}?page={{ pagination.page + 1 }}&sort={{ current_sort }}{% if search_query %}&search_query={{ search_query }}{% endif %}{% if selected_category %}&category_id={{ selected_category }}{% endif %}">Наступна</a>
+                {% else %}
+                    <a class="page-link" href="#">Наступна</a>
+                {% endif %}
+            </li>
+
+        </ul>
+    </nav>
+    {% endif %}
+</div>

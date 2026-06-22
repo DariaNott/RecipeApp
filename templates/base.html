@@ -6,7 +6,7 @@
     <title>{% block title %}Книга Рецептів{% endblock %}</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="/static/css/style.css">
 
     <style>
         @media all and (min-width: 992px) {
@@ -40,17 +40,16 @@
                         <a class="nav-link dropdown-toggle" href="#" role="button"
                            data-bs-toggle="dropdown">Категорії</a>
                         <ul class="dropdown-menu">
-                            {% for category in main_categories %}
+                            {% for category in categories if not category.parent_id %}
                             <li class="{% if category.children %}dropdown-submenu{% endif %}">
                                 <a class="dropdown-item {% if category.children %}dropdown-toggle{% endif %}"
-                                   href="{{ url_for('index', category_id=category.id) }}">
-                                    {{ category.title }}
+                                   href="{{ url_for('index') }}?category_id={{ category.id }}">
+                                    {{ category.name }}
                                 </a>
                                 {% if category.children %}
                                 <ul class="dropdown-menu">
                                     {% for child in category.children %}
-                                    <li><a class="dropdown-item" href="{{ url_for('index', category_id=child.id) }}">{{
-                                        child.title }}</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('index') }}?category_id={{ child.id }}">{{ child.name }}</a></li>
                                     {% endfor %}
                                 </ul>
                                 {% endif %}
@@ -58,13 +57,9 @@
                             {% endfor %}
                         </ul>
                     </li>
-                    {% if current_user.is_authenticated %}
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('add_recipe') }}">Додати Рецепт</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Вихід</a></li>
-                    {% endif %}
                 </ul>
                 <form class="d-flex" role="search" method="GET" action="{{ url_for('index') }}">
-                    <input class="form-control me-2" type="search" name="query" placeholder="Пошук"
+                    <input class="form-control me-2" type="search" name="search_query" placeholder="Пошук"
                            value="{{ search_query if search_query else '' }}"/>
                     <button class="btn btn-outline-success" type="submit">Пошук</button>
                 </form>
@@ -73,17 +68,6 @@
     </nav>
 
     <main class="container py-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
-
         {% block content %}{% endblock %}
     </main>
 </div>
@@ -92,7 +76,6 @@
 
 {% block scripts %}
 <script>
-    // Логіка випадаючих меню (Hover для десктопу, Click для мобільних)
     document.addEventListener("DOMContentLoaded", function(){
         const isDesktop = window.matchMedia("(min-width: 992px)").matches;
         if (isDesktop) {
