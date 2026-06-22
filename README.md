@@ -1,43 +1,45 @@
 # Recipe Management System
 A full-stack web application designed for organizing, searching, and managing culinary recipes. Built with Python (Flask) and SQLAlchemy, featuring a hybrid data persistence strategy and a custom search engine.
 
-## Live Demo
-[Demo website](https://myrecipes-y6km.onrender.com)
-
 ## Key Features
 * __Advanced Search Engine:__ Implemented a custom Unicode-aware search logic to handle Cyrillic case-insensitivity in SQLite.
 * __Hierarchical Categories:__ Nested category support with recursive data fetching (e.g., viewing "Main Dishes" also shows recipes from "Meat" and "Fish" subcategories).
+* __Smart Category Mapping:__ Simplifies recipe creation by resolving plain text strings (`category_names`) to database records automatically on the backend.
 * __Dynamic UI:__ Responsive interface with AJAX-powered sorting, filtering, and server-side pagination.
-* __Admin Dashboard:__ Secure CRUD operations for recipes, ingredients, and categories using Flask-Login and Flask-WTF.
-* __Rich Text Support:__ Integrated Flask-CKEditor for detailed, formatted cooking instructions.
-* __"Cloud-Native" Architecture:__ Configured for seamless deployment on Render with automated database initialization from JSON sources.
+* __Asynchronous Architecture:__ Built completely on an async/await pipeline using `AsyncSession` to maximize concurrent request throughput.
+* __Secured Admin API:__ Full CRUD operations protected by a custom `X-API-KEY` dependency injection barrier for secure backend management.
+* __MissingGreenlet Prevention:__ Implements explicit eager loading strategies via `selectinload` to reliably handle complex Many-to-Many and One-to-Many relational fetches under async constraints.
+* __Strict Schema Validation:__ Streamlined JSON payloads compiled with **Pydantic v2**, ensuring type-safety while isolating the database from clients.
 
 ## Tech Stack
-* __Backend:__ Python 3.13, Flask, SQLAlchemy (ORM), SQLite.
+* __Backend:__ Python 3.13, FastAPI (ASGI)
+* __ORM:__ SQLAlchemy 2.0 (Async Mode)
+* __Data Validation:__ Pydantic v2
+* __Database Drivers:__ `asyncpg` (for PostgreSQL)
 * __Frontend:__ Jinja2, Bootstrap 5, JavaScript (ES6), AJAX.
-* __Deployment:__ Gunicorn, Render, GitHub Actions.
+* __Deployment:__ Uvicorn
 
 ## Technical Challenges & Solutions
-### The SQLite Cyrillic Case-Sensitivity Problem
-__Challenge:__ SQLite's default NOCASE collation only works for ASCII characters. It treats "Шарлотка" and "шарлотка" as different strings, which broke the search functionality for Ukrainian language.
+### Asynchronous ORM Eager Loading (The Greenlet Dilemma)
+__Challenge:__ Lazy loading of relational tables (like fetching a recipe's instructions or ingredients) is natively synchronous. In an asynchronous FastAPI environment, accessing lazy-loaded attributes outside the initial session context throws a critical `MissingGreenlet` exception.
 
-__Solution:__ Registered a custom Python function `py_lower` within the SQLite connection context via SQLAlchemy events. This allowed the database to leverage Python’s robust Unicode support for string comparisons.
+__Solution:__ Designed the database fetching strategy to utilize explicit eager loading with `selectinload`. Every `GET`, `POST`, and `PUT` route explicitly pre-loads the relational graphs (`categories`, `ingredients`, `instructions`, `tips`) within a unified query scope before passing data to Pydantic serializers.
 
-### Hybrid Data Persistence
-__Challenge:__ Render's free tier uses an ephemeral file system, meaning SQLite files are wiped on every restart/deploy.
+### Streamlined Payload Conversion & Data Cleansing
+__Challenge:__ Frontend clients and API consumers shouldn't have to keep track of nested database primary keys (`id`) when assigning categories or attaching new recipe parameters, nor should they handle deprecated fields.
 
-__Solution:__ Developed an automated synchronization pipeline. The app stores the "source of truth" in Git-persistent JSON files. Upon startup, a boot-script checks the database state and automatically restores/populates the SQL schema if it's empty.
+__Solution:__ Designed input Pydantic contracts (`RecipeCreate`) to expect a natural array of strings (`category_names`). The backend seamlessly queries, validates, and links existing Category instances, and cleanly generates isolated rows for sub-tables on every submission.
 
 ## Project Structure
 ```
-├── instance/               # SQLite database storage
-├── resources/              # JSON files with seed data
-├── static/                 # CSS, JS, and image assets
-├── templates/              # Jinja2 HTML templates
-├── app.py                  # Main application logic & configuration
-├── models.py               # SQLAlchemy database models
-├── forms.py                # Flask-WTF form definitions
-├── importer.py             # Data migration & seeding script
+├── routers/
+│   └── admin.py            # Protected administrative CRUD endpoints
+│   └── web.py              # Public web endpoints
+├── database.py             # Async engine setup & SessionLocal generator
+├── dependencies.py         # Shared injection layers (get_db, verify_api_key)
+├── main.py                 # Core application bootstrapper & OpenAPI metadata
+├── models.py               # Async-mapped SQLAlchemy 2.0 database models
+├── schemas.py              # Pydantic v2 data models & response serializers
 ```
 
 ## Installation & Setup
@@ -57,18 +59,15 @@ pip install -r requirements.txt
 
 Create a .env file or set them in your terminal:
 ``` 
-export FLASK_KEY='your-secret-key'
-export ADMIN_PASSWORD='your-admin-password'
+export X_API_KEY='my_super_secret_recipe_app_key_123'
 ```
 
-4. Initialize the database with seed data:
-```
-python import_all.py
-```
-
-5. Run the application:
+4. Run the application:
 ``` 
-flask run
+uvicorn main:app --reload
 ```
+Once initialized, interact with the backend directly through:
+* Interactive Swagger UI: http://127.0.0.1:8000/docs
+* Alternative ReDoc UI: http://127.0.0.1:8000/redoc
 ## License
 Distributed under the MIT License. See LICENSE for more information.
