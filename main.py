@@ -10,6 +10,7 @@ async def lifespan(app: FastAPI):
     print("🚀 Database initiated successfully!")
     yield
 
+
 app = FastAPI(
     title="My Recipes",
     version="1.0.0",
