@@ -2,18 +2,15 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import declarative_base
 
-SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///instance/recipes.db"
+SQLALCHEMY_DATABASE_URI = "postgresql+psycopg://postgres:mypassword@db:5432/postgres"
 
-# TODO change engine when migrated to postgreSQL
-# SQLALCHEMY_DATABASE_URL = "postgresql+asyncpg://postgres:test1234!@localhost/RecipeAppDatabase"
-
-if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+if SQLALCHEMY_DATABASE_URI.startswith("sqlite"):
     engine = create_async_engine(
-        SQLALCHEMY_DATABASE_URL,
+        SQLALCHEMY_DATABASE_URI,
         connect_args={"check_same_thread": False}
     )
 else:
-    engine = create_async_engine(SQLALCHEMY_DATABASE_URL)
+    engine = create_async_engine(SQLALCHEMY_DATABASE_URI)
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
