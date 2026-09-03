@@ -68,7 +68,6 @@
                 });
                 const html = await response.text();
 
-                // ТЕПЕР ТУТ ПРОСТА ЗАМІНА, бо сервер надішле ТІЛЬКИ чистий шматочок контенту!
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
                 const newContent = doc.getElementById('main-content-area');
@@ -76,10 +75,11 @@
                 if (newContent) {
                     contentArea.innerHTML = newContent.innerHTML;
                     window.history.pushState({}, '', url);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
-                    // Якщо раптом id не знайшли (залежить від того, як зрендерив парсер), міняємо весь html
                     contentArea.outerHTML = html;
                     window.history.pushState({}, '', url);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             } catch (error) {
                 console.error('Помилка завантаження:', error);
