@@ -7,7 +7,8 @@ from typing import List
 
 import models
 import schemas
-from dependencies import get_db
+from dependencies import *
+from services.category_service import CategoryService
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin CRUD API"])
 
@@ -72,6 +73,7 @@ async def admin_get_recipe_by_id(
         )
 
     return recipe
+
 
 @router.post("/recipes/", response_model=schemas.RecipeDetailResponse, status_code=status.HTTP_201_CREATED)
 async def create_recipe(
@@ -236,51 +238,17 @@ async def delete_recipe(
 
 
 @router.get("/categories/", response_model=list[schemas.CategoryResponse], status_code=status.HTTP_200_OK)
-async def get_all_categories(db: AsyncSession = Depends(get_db),
-                             _=Depends(verify_api_key)):
-    stmt = select(models.Category).order_by(models.Category.name.asc())
-    result = await db.execute(stmt)
-    categories = result.scalars().all()
-    return categories
+async def get_all_categories(
+        category_service: CategoryService = Depends(get_category_service),
+        _=Depends(verify_api_key)
+):
+    return await category_service.get_all_categories()
+
 
 @router.post("/categories/", response_model=schemas.CategoryResponse, status_code=status.HTTP_201_CREATED)
 async def create_category(
         category_data: schemas.CategoryCreate,
-        db: AsyncSession = Depends(get_db),
+        category_service: CategoryService = Depends(get_category_service),
         _=Depends(verify_api_key)
 ):
-    stmt = select(models.Category).where(models.Category.name == category_data.name)
-    result = await db.execute(stmt)
-    existing_category = result.scalar_one_or_none()
-
-    if existing_category:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Категорія з назвою '{category_data.name}' вже існує."
-        )
-
-    if category_data.parent_id is not None:
-        parent_category = await db.get(models.Category, category_data.parent_id)
-        if not parent_category:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Батьківську категорію з ID {category_data.parent_id} не знайдено."
-            )
-
-    new_category = models.Category(
-        name=category_data.name,
-        parent_id=category_data.parent_id
-    )
-
-    try:
-        db.add(new_category)
-        await db.commit()
-        await db.refresh(new_category)
-        return new_category
-
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Помилка при збереженні категорії: {str(e)}"
-        )
+    return await category_service.create_category(category_data)
