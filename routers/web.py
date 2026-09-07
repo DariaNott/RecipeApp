@@ -52,7 +52,7 @@ async def refresh_recipe_links_map(db: AsyncSession):
         recipes_list = result.all()
         RECIPE_LINKS_MAP = {row.title.lower().strip(): row.id for row in recipes_list}
     except Exception as e:
-        print(f"⚠️ Не вдалося оновити карту посилань рецептів: {e}")
+        print(f"Couldn't update recipe links map: {e}")
 
 
 templates.env.filters["datetime"] = filter_datetime
@@ -178,7 +178,7 @@ async def recipe_detail(request: Request, recipe_id: int, db: AsyncSession = Dep
     recipe = result.unique().scalar_one_or_none()
 
     if not recipe:
-        raise HTTPException(status_code=404, detail="Рецепт не знайдено")
+        raise HTTPException(status_code=404, detail="Recipe not found.")
 
     return templates.TemplateResponse(
         request=request,
