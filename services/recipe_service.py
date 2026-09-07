@@ -10,8 +10,26 @@ class RecipeService:
         self.recipe_repo = recipe_repo
         self.category_repo = category_repo
 
+
+    async def get_index_page_data(self, page: int, category_id: int, search_query: str, sort: str):
+        categories = await self.category_repo.get_all_with_children()
+        recipes, pagination = await self.recipe_repo.get_paginated_list(
+            page=page, category_id=category_id, search_query=search_query, sort=sort
+        )
+        return categories, recipes, pagination
+
+
     async def get_all_recipes(self) -> list[models.Recipe]:
         return await self.recipe_repo.list_all_with_details()
+
+    async def get_recipe_detail_data(self, recipe_id: int):
+        categories = await self.category_repo.get_all_with_children()
+        recipe = await self.recipe_repo.get_by_id_with_details(recipe_id)
+        if not recipe:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipe not found.")
+
+        recipe_links_map = await self.recipe_repo.get_recipe_links_map()
+        return recipe, categories, recipe_links_map
 
     async def create_recipe(self, recipe_data: schemas.RecipeCreate) -> models.Recipe:
         assigned_categories: list[models.Category] = []

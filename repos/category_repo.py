@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import models
 import schemas
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 
 class CategoryRepository:
@@ -13,6 +14,15 @@ class CategoryRepository:
         stmt = select(models.Category).order_by(models.Category.name.asc())
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+
+    async def get_all_with_children(self) -> list[models.Category]:
+        stmt = (
+            select(models.Category)
+            .options(selectinload(models.Category.children))
+            .order_by(models.Category.name.asc())
+        )
+        result = await self.db.execute(stmt)
+        return list(result.unique().scalars().all())
 
     async def get_by_name(self, name: str) -> models.Category | None:
         stmt = select(models.Category).where(models.Category.name == name)
