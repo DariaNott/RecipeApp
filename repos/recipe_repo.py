@@ -68,13 +68,16 @@ class RecipeRepository:
     async def get_paginated_list(
         self, page: int = 1, limit: int = 6, category_id: int = None, search_query: str = None, sort: str = "newest"
     ):
+        page = max(1, page)  # Ensure page >= 1
+        limit = max(1, min(limit, 100))  # Ensure 1 <= limit <= 100
+
         stmt = select(models.Recipe)
 
         if search_query and search_query.strip():
             q = f"%{search_query.strip()}%"
             stmt = stmt.where(models.Recipe.title.ilike(q) | models.Recipe.description.ilike(q))
 
-        if category_id:
+        if category_id is not None:
             sub_cats_res = await self.db.execute(
                 select(models.Category.id).where(models.Category.parent_id == category_id)
             )

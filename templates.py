@@ -1,5 +1,6 @@
 import re
 from fastapi.templating import Jinja2Templates
+from jinja2 import pass_context
 
 templates = Jinja2Templates(directory="templates")
 
@@ -13,7 +14,9 @@ def filter_datetime(value):
         return str(value)
 
 
-def filter_link_recipes(value, recipe_links_map: dict = None):
+@pass_context
+def filter_link_recipes(context, value):
+    recipe_links_map = context.get('recipe_links_map', {})
     if value is None:
         return ""
 
