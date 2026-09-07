@@ -35,7 +35,7 @@ async def test_create_recipe_category_not_found(client: AsyncClient):
     }
     response = await client.post("/api/v1/admin/recipes/", json=recipe_payload, headers=HEADERS)
     assert response.status_code == 404
-    assert "не знайдено" in response.json()["detail"]
+    assert "not found" in response.json()["detail"]
 
 
 async def test_create_recipe_success(client: AsyncClient, db_session: AsyncSession):

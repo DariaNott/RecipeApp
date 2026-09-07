@@ -27,4 +27,10 @@ class CategoryService:
                     detail=f"Parent category with ID {category_data.parent_id} not found."
                 )
 
-        return await self.category_repo.create(category_data)
+        try:
+            return await self.category_repo.create(category_data)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Category not saved. Error: {str(e)}",
+            )

@@ -3,7 +3,7 @@ from fastapi.security import APIKeyHeader
 from typing import List
 
 import schemas
-from dependencies import *
+from dependencies import get_recipe_service, get_category_service
 from services.category_service import CategoryService
 from services.recipe_service import RecipeService
 

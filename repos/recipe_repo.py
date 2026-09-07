@@ -3,7 +3,7 @@ import schemas
 import math
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func, desc, asc
+from sqlalchemy import select, func, desc, asc
 from sqlalchemy.orm import selectinload
 
 class RecipeRepository:
@@ -91,12 +91,10 @@ class RecipeRepository:
         else:
             stmt = stmt.order_by(desc(models.Recipe.id))
 
-        # Підрахунок загальної кількості
         count_stmt = select(func.count()).select_from(stmt.subquery())
         count_result = await self.db.execute(count_stmt)
         total_recipes = count_result.scalar() or 0
 
-        # Пагінація
         offset = (page - 1) * limit
         stmt = stmt.offset(offset).limit(limit)
         recipes_result = await self.db.execute(stmt)
