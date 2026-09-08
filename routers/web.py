@@ -30,9 +30,15 @@ async def index(
     }
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return templates.TemplateResponse("partials/recipes_list.html", context)
+        return templates.TemplateResponse(request=request,
+                                          name="partials/recipes_list.html",
+                                          context=context
+                                          )
 
-    return templates.TemplateResponse("index.html", context)
+    return templates.TemplateResponse(request=request,
+                                      name="index.html",
+                                      context=context
+                                      )
 
 
 @router.get("/recipe/{recipe_id}")
@@ -44,8 +50,9 @@ async def recipe_detail(
     recipe, categories, recipe_links_map = await recipe_service.get_recipe_detail_data(recipe_id)
 
     return templates.TemplateResponse(
-        "recipe.html",
-        {
+        request=request,
+        name="recipe.html",
+        context={
             "request": request,
             "recipe": recipe,
             "categories": categories,
