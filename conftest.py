@@ -27,7 +27,6 @@ TestingSessionLocal = async_sessionmaker(
 event.listen(test_engine.sync_engine, "connect", setup_sqlite_functions)
 
 
-# Створення схеми один раз на всю тестову сесію
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def setup_database_schema():
     async with test_engine.begin() as conn:
@@ -36,8 +35,9 @@ async def setup_database_schema():
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
+    await test_engine.dispose()
 
-# Фікстура сесії бази даних для інтеграційних тестів
+
 @pytest_asyncio.fixture(scope="function")
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
     async with test_engine.connect() as connection:
